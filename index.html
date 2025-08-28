@@ -594,12 +594,19 @@
                     mediaElement = `
                         <video class="media" 
                                ${index === 0 ? 'autoplay' : 'preload="metadata"'} 
-                               muted loop 
+                               muted 
+                               loop 
                                playsinline 
+                               crossorigin="anonymous"
                                aria-label="${video.title}"
-                               data-src="${video.media}">
+                               data-src="${video.media}"
+                               onerror="this.onerror=null; this.parentNode.querySelector('.media-loading').style.display='none'; this.parentNode.querySelector('.media-error').style.display='block';">
                             <source src="${video.media}" type="video/mp4">
                             Votre navigateur ne supporte pas la lecture de vidéos.
+                            <div class="media-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; text-align: center; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 5px;">
+                                Erreur de chargement de la vidéo<br>
+                                <small>Vérifiez la connexion ou actualisez la page</small>
+                            </div>
                         </video>`;
                 } else {
                     mediaElement = `
@@ -877,6 +884,34 @@
             });
         }
 
+        // Helper function to handle video loading errors
+        function handleVideoError(media, mediaWrapper) {
+            media.classList.add('error');
+            updateLoadingState(mediaWrapper, false, true);
+            
+            // Show error message if it exists
+            const errorElement = media.querySelector('.media-error');
+            if (errorElement) {
+                errorElement.style.display = 'block';
+            }
+            
+            console.error('Error loading video:', media.getAttribute('data-src'));
+        }
+        
+        // Helper function to update loading state
+        function updateLoadingState(mediaWrapper, isLoading, isError = false) {
+            if (!mediaWrapper) return;
+            
+            const loadingIndicator = mediaWrapper.querySelector('.media-loading');
+            if (loadingIndicator) {
+                loadingIndicator.style.display = isLoading ? 'flex' : 'none';
+            }
+            
+            if (isError) {
+                mediaWrapper.classList.add('error');
+            }
+        }
+
         // Gestion du lazy loading
         function initializeLazyLoading() {
             const lazyMedia = document.querySelectorAll('.lazy-load');
@@ -916,16 +951,26 @@
                                 if (source) {
                                     const src = media.getAttribute('data-src');
                                     if (src) {
+                                        // Set source and load video
                                         source.src = src;
                                         media.load();
-                                        media.oncanplay = () => {
-                                            media.classList.add('loaded');
-                                            if (mediaWrapper) {
-                                                const loadingIndicator = mediaWrapper.querySelector('.media-loading');
-                                                if (loadingIndicator) {
-                                                    loadingIndicator.style.display = 'none';
-                                                }
+                                        
+                                        // Set a timeout to handle cases where video might not load
+                                        const loadTimeout = setTimeout(() => {
+                                            if (media.readyState < 3) { // HAVE_FUTURE_DATA
+                                                handleVideoError(media, mediaWrapper);
                                             }
+                                        }, 10000); // 10 second timeout
+
+                                        media.oncanplay = () => {
+                                            clearTimeout(loadTimeout);
+                                            media.classList.add('loaded');
+                                            updateLoadingState(mediaWrapper, false);
+                                        };
+
+                                        media.onerror = () => {
+                                            clearTimeout(loadTimeout);
+                                            handleVideoError(media, mediaWrapper);
                                         };
                                     }
                                 }
