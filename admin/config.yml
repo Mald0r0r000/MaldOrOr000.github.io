@@ -1,0 +1,57 @@
+backend:
+  name: github
+  repo:  Mald0r0r000/MaldOrOr000.github.io
+  branch: main
+  auth_endpoint: https://decap-cms-oauth.netlify.app/
+
+media_folder: "content/media"
+public_folder: "/content/media"
+
+collections:
+  - name: "video"
+    label: "Vidéos"
+    folder: "data/videos"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    extension: "json"
+    format: "json"
+    fields:
+      - { label: "Titre", name: "title", widget: "string" }
+      - { label: "Description", name: "description", widget: "string" }
+      - { label: "Type", name: "type", widget: "select", options: ["video", "image"] }
+      - { label: "Média", name: "media", widget: "file" }
+      - { label: "Année", name: "year", widget: "string", default: "2024" }
+      - { label: "Ordre", name: "order", widget: "number", default: 1 }
+      - { label: "Actif", name: "active", widget: "boolean", default: true }
+
+  - name: "photo"
+    label: "Photos"
+    folder: "data/photos"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}-{{slug}}"
+    extension: "json"
+    format: "json"
+    fields:
+      - { label: "Titre", name: "title", widget: "string" }
+      - { label: "Description", name: "description", widget: "string" }
+      - { label: "Image", name: "media", widget: "image" }
+      - { label: "Année", name: "year", widget: "string", default: "2024" }
+      - { label: "Ordre", name: "order", widget: "number", default: 1 }
+      - { label: "Actif", name: "active", widget: "boolean", default: true }
+
+  - name: "settings"
+    label: "Paramètres"
+    files:
+      - file: "data/settings.json"
+        label: "Configuration générale"
+        name: "general"
+        format: "json"
+        fields:
+          - { label: "Titre du site", name: "site_title", widget: "string", default: "Portfolio" }
+          - { label: "Description", name: "site_description", widget: "text" }
+          - { label: "Email", name: "email", widget: "string" }
+          - { label: "Réseaux sociaux", name: "social", widget: "object", fields: [
+              { label: "Instagram", name: "instagram", widget: "string", required: false },
+              { label: "LinkedIn", name: "linkedin", widget: "string", required: false },
+              { label: "Behance", name: "behance", widget: "string", required: false }
+            ]}

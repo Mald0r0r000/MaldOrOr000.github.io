@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANTOINE BEDOS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            overflow: hidden;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: #000;
+            color: #fff;
+            cursor: none;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* Curseur personnalisé */
+        .custom-cursor {
+            position: fixed;
+            width: 4px;
+            height: 4px;
+            background: #fff;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999;
+            transition: all 0.15s ease;
+            mix-blend-mode: difference;
+        }
+
+        .custom-cursor.hover {
+            width: 30px;
+            height: 30px;
+            background: transparent;
+            border: 1px solid #fff;
+        }
+
+        /* Menu déroulant fantôme */
+        .ghost-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            z-index: 1000;
+            opacity: 0;
+            transform: translateY(-100%);
+            transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+            background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
+            backdrop-filter: blur(20px);
+        }
+
+        .ghost-menu.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .menu-content {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100%;
+            gap: 60px;
+        }
+
+        .menu-item {
+            font-size: 14px;
+            font-weight: 300;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            opacity: 0.6;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .menu-item.active {
+            opacity: 1;
+        }
+
+        .menu-item::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 1px;
+            background: #fff;
+            transition: width 0.3s ease;
+        }
+
+        .menu-item.active::after {
+            width: 100%;
+        }
+
+        /* Indicateurs de navigation */
+        .nav-indicators {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            z-index: 1000;
+            font-size: 11px;
+            opacity: 0.5;
+            font-weight: 300;
+            text-align: right;
+        }
+
+        .section-counter {
+            margin-bottom: 5px;
+        }
+
+        .item-counter {
+            opacity: 0.7;
+        }
+
+        /* Instructions navigation */
+        .nav-instructions {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            z-index: 1000;
+            font-size: 11px;
+            opacity: 0.4;
+            font-weight: 300;
+            line-height: 1.6;
+        }
+
+        /* Conteneur principal fullscreen */
+        .main-container {
+            position: relative;
+            max-width: max-content;
+            height: max-content;
+            overflow: hidden;
+        }
+
+        /* Sections */
+        .section {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: max-content;
+            height: max-content;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 1s cubic-bezier(0.23, 1, 0.32, 1);
+            transform: translateY(100%);
+        }
+
+        .section.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .section.prev {
+            transform: translateY(-100%);
+        }
+
+        /* Items dans chaque section */
+        .section-container {
+            position: relative;
+            width: 95%;
+            height: 95%;
+            overflow: hidden;
+        }
+
+        .item {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 95%;
+            height: 95%;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+            transform: translateX(100%);
+        }
+
+        .item.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(0);
+        }
+
+        .item.prev {
+            transform: translateX(-100%);
+        }
+
+        /* Médias fullscreen */
+        /* Styles pour le chargement */
+        .loading-indicator,
+        .empty-message,
+        .error-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 1rem 2rem;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            border-radius: 4px;
+            z-index: 1000;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            pointer-events: none;
+        }
+        
+        .error-message {
+            background: rgba(200, 50, 50, 0.9);
+        }
+        
+        .media-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        .media-loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .media {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: all 2s ease;
+            opacity: 0;
+        }
+        
+        .media.loaded {
+            opacity: 1;
+        }
+        
+        .empty-message {
+            text-align: center;
+            font-size: 1.2rem;
+            color: #aaa;
+            padding: 2rem;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 8px;
+            width: 80%;
+            max-width: 400px;
+        }
+
+        .item:hover .media {
+            transform: scale(1.02);
+        }
+
+        /* Overlay d'informations minimal */
+        .item-info {
+            position: absolute;
+            bottom: 40px;
+            left: 40px;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(15px);
+            padding: 12px 20px;
+            border-radius: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s ease;
+        }
+
+        .item.active .item-info {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .item-title {
+            font-size: 13px;
+            font-weight: 300;
+            margin-bottom: 2px;
+            letter-spacing: 0.5px;
+        }
+
+        .item-desc {
+            font-size: 11px;
+            opacity: 0.8;
+            font-weight: 300;
+            letter-spacing: 0.3px;
+        }
+
+        /* Section Showreel spécifique */
+        .showreel-section .item-info {
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            text-align: center;
+        }
+
+        .showreel-section .item.active .item-info {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Parallax subtil */
+        .parallax-element {
+            transition: transform 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        /* Zone de détection du menu */
+        .menu-trigger {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 100px;
+            z-index: 999;
+            pointer-events: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .ghost-menu {
+                height: 60px;
+            }
+
+            .menu-content {
+                gap: 40px;
+            }
+
+            .menu-item {
+                font-size: 12px;
+            }
+
+            .nav-indicators {
+                bottom: 20px;
+                right: 20px;
+            }
+
+            .nav-instructions {
+                bottom: 20px;
+                left: 20px;
+                font-size: 10px;
+            }
+
+            .item-info {
+                bottom: 25px;
+                left: 25px;
+                padding: 10px 16px;
+            }
+
+            .showreel-section .item-info {
+                bottom: 40px;
+            }
+
+            body {
+                cursor: auto;
+            }
+
+            .custom-cursor {
+                display: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .menu-content {
+                gap: 30px;
+            }
+
+            .menu-item {
+                font-size: 11px;
+            }
+
+            .nav-indicators {
+                bottom: 15px;
+                right: 15px;
+                font-size: 10px;
+            }
+
+            .nav-instructions {
+                bottom: 15px;
+                left: 15px;
+                font-size: 9px;
+            }
+
+            .item-info {
+                bottom: 20px;
+                left: 20px;
+                padding: 8px 14px;
+            }
+
+            .item-title {
+                font-size: 12px;
+            }
+
+            .item-desc {
+                font-size: 10px;
+            }
+        }
+
+        /* Préloader minimal */
+        .preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 95%;
+            height: 95%;
+            background: #000;
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+            transition: opacity 1s ease;
+        }
+
+        .preloader.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .preloader-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #fff;
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Préloader -->
+    <div class="preloader">
+        <div class="preloader-dot"></div>
+    </div>
+
+    <div class="custom-cursor"></div>
+
+    <!-- Zone de déclenchement du menu -->
+    <div class="menu-trigger"></div>
+
+    <!-- Menu fantôme -->
+    <div class="ghost-menu">
+        <div class="menu-content">
+            <div class="menu-item active" data-section="0">Vidéo</div>
+            <div class="menu-item" data-section="1">Photo</div>
+        </div>
+    </div>
+
+    <!-- Indicateurs de navigation -->
+    <div class="nav-indicators">
+        <div class="section-counter">Section <span id="current-section">1</span>/2</div>
+        <div class="item-counter">Item <span id="current-item">1</span>/<span id="total-items">4</span></div>
+    </div>
+
+    <!-- Instructions navigation -->
+    <div class="nav-instructions">
+        ↑↓ Sections<br>
+        ←→ Items
+    </div>
+
+    <!-- Conteneur principal -->
+    <div class="main-container">
+        <!-- Section Vidéo -->
+        <div class="section showreel-section active" data-section="0">
+            <div class="section-container"></div>
+        </div>
+
+        <!-- Section Photo -->
+        <div class="section" data-section="1">
+            <div class="section-container"></div>
+        </div>
+    </div>
+
+    <script>
+    // Variables globales
+    let currentSection = 0;
+    let currentItems = [0, 0];
+    const totalSections = 2;
+        let itemsPerSection = [0, 0];
+
+        // Dynamic portfolio loading with error handling
+        async function loadPortfolioData() {
+            const loadingIndicator = document.createElement('div');
+            loadingIndicator.className = 'loading-indicator';
+            loadingIndicator.textContent = 'Chargement du portfolio...';
+            document.body.appendChild(loadingIndicator);
+
+            try {
+                const response = await fetch('/data/portfolio.json');
+                if (!response.ok) {
+                    throw new Error(`Erreur HTTP: ${response.status}`);
+                }
+                const data = await response.json();
+                
+                if (!data.videos || !data.photos) {
+                    throw new Error('Format de données invalide');
+                }
+
+                const videos = data.videos
+                    .filter(item => item?.active)
+                    .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+                const photos = data.photos
+                    .filter(item => item?.active)
+                    .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+                if (videos.length === 0 && photos.length === 0) {
+                    throw new Error('Aucun contenu actif trouvé');
+                }
+
+                generateVideoSection(videos);
+                generatePhotoSection(photos);
+
+                itemsPerSection[0] = videos.length;
+                itemsPerSection[1] = photos.length;
+
+                updateCounters();
+                
+                // Supprimer l'indicateur de chargement
+                loadingIndicator.remove();
+                
+            } catch (error) {
+                console.error('Erreur lors du chargement du portfolio:', error);
+                loadingIndicator.textContent = 'Erreur de chargement. Veuillez réessayer plus tard.';
+                loadingIndicator.className = 'error-message';
+                
+                // Afficher un message d'erreur plus détaillé en mode développement
+                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+                    console.error('Détails de l\'erreur:', error);
+                }
+            }
+        }
+
+        function generateVideoSection(videos) {
+            const videoSection = document.querySelector('.section[data-section="0"] .section-container');
+            if (!videoSection) {
+                console.error('Section vidéo introuvable dans le DOM');
+                return;
+            }
+            
+            videoSection.innerHTML = '';
+            
+            if (!videos || videos.length === 0) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.className = 'empty-message';
+                emptyMessage.textContent = 'Aucune vidéo disponible pour le moment';
+                videoSection.appendChild(emptyMessage);
+                return;
+            }
+            
+            videos.forEach((video, index) => {
+                const item = document.createElement('div');
+                item.className = `item${index === 0 ? ' active' : ''}`;
+                item.dataset.item = index;
+                item.setAttribute('role', 'article');
+                item.setAttribute('aria-label', `Vidéo: ${video.title}`);
+                
+                let mediaElement = '';
+                
+                if (video.type === 'video') {
+                    mediaElement = `
+                        <video class="media" 
+                               ${index === 0 ? 'autoplay' : 'preload="metadata"'} 
+                               muted loop 
+                               playsinline 
+                               aria-label="${video.title}"
+                               data-src="${video.media}">
+                            <source src="${video.media}" type="video/mp4">
+                            Votre navigateur ne supporte pas la lecture de vidéos.
+                        </video>`;
+                } else {
+                    mediaElement = `
+                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" 
+                             data-src="${video.media}" 
+                             alt="${video.description || video.title}" 
+                             class="media parallax-element lazy-load" 
+                             loading="lazy"
+                             onerror="this.onerror=null; this.src='data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22800%22%20height%3D%22600%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20800%20600%22%20preserveAspectRatio%3D%22none%22%3E%3Cdefs%3E%3Cstyle%20type%3D%22text%2Fcss%22%3E%23holder_18945b1b2c6%20text%20%7B%20fill%3A%23AAAAAA%3Bfont-weight%3Abold%3Bfont-family%3AArial%2C%20Helvetica%2C%20Open%20Sans%2C%20sans-serif%2C%20monospace%3Bfont-size%3A40pt%20%7D%20%3C%2Fstyle%3E%3C%2Fdefs%3E%3Cg%20id%3D%22holder_18945b1b2c6%22%3E%3Crect%20width%3D%22800%22%20height%3D%22600%22%20fill%3D%22%23EEEEEE%22%3E%3C%2Frect%3E%3Cg%3E%3Ctext%20x%3D%22277%22%20y%3D%22329%22%3EImage%20non%20chargée%3C%2Ftext%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E';">`;
+                }
+                
+                item.innerHTML = `
+                    <div class="media-wrapper">
+                        ${mediaElement}
+                        <div class="media-loading">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                    <div class="item-info">
+                        <h2 class="item-title">${video.title}</h2>
+                        <p class="item-desc">${video.description}</p>
+                    </div>
+                `;
+                
+                videoSection.appendChild(item);
+            });
+            
+            // Initialiser le lazy loading après l'ajout des éléments
+            initializeLazyLoading();
+        }
+
+        function generatePhotoSection(photos) {
+            const photoSection = document.querySelector('.section[data-section="1"] .section-container');
+            if (!photoSection) {
+                console.error('Section photo introuvable dans le DOM');
+                return;
+            }
+            
+            photoSection.innerHTML = '';
+            
+            if (!photos || photos.length === 0) {
+                const emptyMessage = document.createElement('div');
+                emptyMessage.className = 'empty-message';
+                emptyMessage.textContent = 'Aucune photo disponible pour le moment';
+                photoSection.appendChild(emptyMessage);
+                return;
+            }
+            
+            photos.forEach((photo, index) => {
+                const item = document.createElement('div');
+                item.className = 'item';
+                item.dataset.item = index;
+                item.setAttribute('role', 'article');
+                item.setAttribute('aria-label', `Photo: ${photo.title}`);
+                
+                // Création d'un placeholder SVG minimal pour le lazy loading
+                const placeholderSVG = 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 1 1\'%3E%3C/svg%3E';
+                
+                item.innerHTML = `
+                    <div class="media-wrapper">
+                        <img src="${placeholderSVG}" 
+                             data-src="${photo.media}" 
+                             alt="${photo.description || photo.title}" 
+                             class="media parallax-element lazy-load" 
+                             loading="lazy"
+                             onerror="this.onerror=null; this.src='data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22800%22%20height%3D%22600%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20800%20600%22%20preserveAspectRatio%3D%22none%22%3E%3Cdefs%3E%3Cstyle%20type%3D%22text%2Fcss%22%3E%23holder_18945b1b2c6%20text%20%7B%20fill%3A%23AAAAAA%3Bfont-weight%3Abold%3Bfont-family%3AArial%2C%20Helvetica%2C%20Open%20Sans%2C%20sans-serif%2C%20monospace%3Bfont-size%3A40pt%20%7D%20%3C%2Fstyle%3E%3C%2Fdefs%3E%3Cg%20id%3D%22holder_18945b1b2c6%22%3E%3Crect%20width%3D%22800%22%20height%3D%22600%22%20fill%3D%22%23EEEEEE%22%3E%3C%2Frect%3E%3Cg%3E%3Ctext%20x%3D%22277%22%20y%3D%22329%22%3EImage%20non%20chargée%3C%2Ftext%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E';">
+                        <div class="media-loading">
+                            <div class="spinner"></div>
+                        </div>
+                    </div>
+                    <div class="item-info">
+                        <h2 class="item-title">${photo.title}</h2>
+                        <p class="item-desc">${photo.description}</p>
+                    </div>
+                `;
+                
+                photoSection.appendChild(item);
+            });
+            
+            // Initialiser le lazy loading après l'ajout des éléments
+            initializeLazyLoading();
+        } // Nombre d'items par section
+
+        const sections = document.querySelectorAll('.section');
+        const menuItems = document.querySelectorAll('.menu-item');
+        const ghostMenu = document.querySelector('.ghost-menu');
+        const cursor = document.querySelector('.custom-cursor');
+        const menuTrigger = document.querySelector('.menu-trigger');
+
+        // Curseur personnalisé
+        function initCursor() {
+            if (window.innerWidth > 768) {
+                document.addEventListener('mousemove', (e) => {
+                    cursor.style.left = e.clientX + 'px';
+                    cursor.style.top = e.clientY + 'px';
+                });
+
+                // Effet hover
+                const interactiveElements = document.querySelectorAll('.menu-item, .item');
+                interactiveElements.forEach(el => {
+                    el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
+                    el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
+                });
+            }
+        }
+
+        // Menu fantôme
+        function initGhostMenu() {
+            let menuTimeout;
+
+            const showMenu = () => {
+                clearTimeout(menuTimeout);
+                ghostMenu.classList.add('visible');
+            };
+
+            const hideMenu = () => {
+                menuTimeout = setTimeout(() => {
+                    ghostMenu.classList.remove('visible');
+                }, 1000);
+            };
+
+            // Déclenchement par zone haut de l'écran
+            menuTrigger.addEventListener('mouseenter', showMenu);
+            ghostMenu.addEventListener('mouseenter', showMenu);
+            ghostMenu.addEventListener('mouseleave', hideMenu);
+
+            // Déclenchement par mouvement de souris en haut
+            document.addEventListener('mousemove', (e) => {
+                if (e.clientY < 50) {
+                    showMenu();
+                } else if (e.clientY > 150) {
+                    hideMenu();
+                }
+            });
+
+            // Navigation par clic menu
+            menuItems.forEach((item, index) => {
+                item.addEventListener('click', () => {
+                    changeSection(index);
+                });
+            });
+        }
+
+        // Changer de section (haut/bas)
+        function changeSection(newSection) {
+            if (newSection < 0 || newSection >= totalSections || newSection === currentSection) return;
+
+            // Animation sortie section actuelle
+            sections[currentSection].classList.remove('active');
+            menuItems[currentSection].classList.remove('active');
+            
+            if (newSection > currentSection) {
+                sections[currentSection].classList.add('prev');
+            } else {
+                sections[currentSection].classList.remove('prev');
+            }
+
+            // Animation entrée nouvelle section
+            setTimeout(() => {
+                sections[newSection].classList.add('active');
+                sections[newSection].classList.remove('prev');
+                menuItems[newSection].classList.add('active');
+            }, 100);
+
+            currentSection = newSection;
+            updateCounters();
+            activateCurrentItem();
+        }
+
+        // Changer d'item dans la section (gauche/droite)
+        function changeItem(direction) {
+            const currentItems_section = currentItems[currentSection];
+            const totalItems = itemsPerSection[currentSection];
+            let newItem;
+
+            if (direction === 'next') {
+                newItem = (currentItems_section + 1) % totalItems;
+            } else {
+                newItem = (currentItems_section - 1 + totalItems) % totalItems;
+            }
+
+            // Désactiver item actuel
+            const currentItemEl = sections[currentSection].querySelector(`.item[data-item="${currentItems_section}"]`);
+            currentItemEl.classList.remove('active');
+            
+            if (direction === 'next') {
+                currentItemEl.classList.add('prev');
+            } else {
+                currentItemEl.classList.remove('prev');
+            }
+
+            // Activer nouvel item
+            setTimeout(() => {
+                const newItemEl = sections[currentSection].querySelector(`.item[data-item="${newItem}"]`);
+                newItemEl.classList.add('active');
+                newItemEl.classList.remove('prev');
+                
+                // Effet parallax subtil
+                addParallaxEffect(newItemEl);
+            }, 100);
+
+            currentItems[currentSection] = newItem;
+            updateCounters();
+        }
+
+        // Activer l'item actuel de la section
+        function activateCurrentItem() {
+            const items = sections[currentSection].querySelectorAll('.item');
+            items.forEach((item, index) => {
+                if (index === currentItems[currentSection]) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active', 'prev');
+                }
+            });
+        }
+
+        // Effets parallax subtils
+        function addParallaxEffect(element) {
+            const media = element.querySelector('.parallax-element');
+            if (!media) return;
+
+            const randomX = (Math.random() - 0.5) * 20;
+            const randomY = (Math.random() - 0.5) * 15;
+            const randomRotation = (Math.random() - 0.5) * 1;
+
+            media.style.transform = `translate(${randomX}px, ${randomY}px) rotate(${randomRotation}deg) scale(1.02)`;
+            
+            setTimeout(() => {
+                media.style.transform = 'translate(0, 0) rotate(0deg) scale(1)';
+            }, 2000);
+        }
+
+        // Mettre à jour les compteurs
+        function updateCounters() {
+            document.getElementById('current-section').textContent = currentSection + 1;
+            document.getElementById('current-item').textContent = currentItems[currentSection] + 1;
+            document.getElementById('total-items').textContent = itemsPerSection[currentSection];
+        }
+
+        // Navigation clavier
+        document.addEventListener('keydown', (e) => {
+            switch(e.key) {
+                case 'ArrowUp':
+                    e.preventDefault();
+                    changeSection(currentSection - 1);
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    changeSection(currentSection + 1);
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    changeItem('prev');
+                    break;
+                case 'ArrowRight':
+                case ' ':
+                    e.preventDefault();
+                    changeItem('next');
+                    break;
+            }
+        });
+
+        // Préchargement
+        function preloadContent() {
+            const images = [
+                'https://picsum.photos/1920/1080?random=1',
+                'https://picsum.photos/1920/1080?random=2',
+                'https://picsum.photos/1920/1080?random=3'
+            ];
+            
+            images.forEach(src => {
+                const img = new Image();
+                img.src = src;
+            });
+        }
+
+        // Gestion du lazy loading
+        function initializeLazyLoading() {
+            const lazyMedia = document.querySelectorAll('.lazy-load');
+            
+            if ('IntersectionObserver' in window) {
+                const lazyMediaObserver = new IntersectionObserver((entries, observer) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const media = entry.target;
+                            const mediaWrapper = media.closest('.media-wrapper');
+                            
+                            // Afficher l'indicateur de chargement
+                            if (mediaWrapper) {
+                                const loadingIndicator = mediaWrapper.querySelector('.media-loading');
+                                if (loadingIndicator) {
+                                    loadingIndicator.style.display = 'flex';
+                                }
+                            }
+                            
+                            // Charger la source
+                            if (media.tagName === 'IMG') {
+                                const src = media.getAttribute('data-src');
+                                if (src) {
+                                    media.src = src;
+                                    media.onload = () => {
+                                        media.classList.add('loaded');
+                                        if (mediaWrapper) {
+                                            const loadingIndicator = mediaWrapper.querySelector('.media-loading');
+                                            if (loadingIndicator) {
+                                                loadingIndicator.style.display = 'none';
+                                            }
+                                        }
+                                    };
+                                }
+                            } else if (media.tagName === 'VIDEO') {
+                                const source = media.querySelector('source');
+                                if (source) {
+                                    const src = media.getAttribute('data-src');
+                                    if (src) {
+                                        source.src = src;
+                                        media.load();
+                                        media.oncanplay = () => {
+                                            media.classList.add('loaded');
+                                            if (mediaWrapper) {
+                                                const loadingIndicator = mediaWrapper.querySelector('.media-loading');
+                                                if (loadingIndicator) {
+                                                    loadingIndicator.style.display = 'none';
+                                                }
+                                            }
+                                        };
+                                    }
+                                }
+                            }
+                            
+                            observer.unobserve(media);
+                        }
+                    });
+                });
+                
+                lazyMedia.forEach(media => {
+                    lazyMediaObserver.observe(media);
+                });
+            } else {
+                // Fallback pour les navigateurs qui ne supportent pas IntersectionObserver
+                lazyMedia.forEach(media => {
+                    if (media.tagName === 'IMG') {
+                        const src = media.getAttribute('data-src');
+                        if (src) {
+                            media.src = src;
+                        }
+                    } else if (media.tagName === 'VIDEO') {
+                        const source = media.querySelector('source');
+                        if (source) {
+                            const src = media.getAttribute('data-src');
+                            if (src) {
+                                source.src = src;
+                                media.load();
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        // Initialisation
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.querySelector('.preloader').classList.add('hidden');
+                // Load dynamic portfolio and initialize
+                loadPortfolioData();
+                initCursor();
+                initGhostMenu();
+                preloadContent();
+            }, 800);
+        });
+
+        // Responsive
+        window.addEventListener('resize', () => {
+            if (window.innerWidth <= 768) {
+                cursor.style.display = 'none';
+            } else {
+                cursor.style.display = 'block';
+                initCursor();
+            }
+        });
+    </script>
+</body>
+</html>
