@@ -612,19 +612,20 @@
                 if (video.type === 'video') {
                     mediaElement = `
                         <div class="video-container">
-                            <video class="media" 
-                                   ${index === 0 ? 'autoplay' : 'preload="metadata"'} 
-                                   muted 
-                                   loop 
-                                   playsinline 
-                                   crossorigin="anonymous"
-                                   aria-label="${video.title}"
-                                   data-src="${video.media}"
-                                   onerror="handleVideoError(this)"
-                                   onloadedmetadata="handleVideoLoaded(this)">
-                                <source src="${video.media}" type="video/mp4">
-                                Votre navigateur ne support pas la lecture de vidéos.
-                            </video>
+                            <div class="video-wrapper">
+                                <video class="media" 
+                                       ${index === 0 ? 'autoplay' : 'preload="metadata"'} 
+                                       muted 
+                                       loop 
+                                       playsinline 
+                                       crossorigin="anonymous"
+                                       aria-label="${video.title}"
+                                       onerror="handleVideoError(this)"
+                                       onloadeddata="handleVideoLoaded(this)">
+                                    <source data-src="${video.media}" type="video/mp4">
+                                    Votre navigateur ne support pas la lecture de vidéos.
+                                </video>
+                            </div>
                             <div class="media-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; text-align: center; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 5px; z-index: 10;">
                                 Erreur de chargement de la vidéo<br>
                                 <small><a href="${video.media}" target="_blank" style="color: #4dabf7;">Ouvrir la vidéo dans un nouvel onglet</a></small>
@@ -971,29 +972,52 @@
                             } else if (media.tagName === 'VIDEO') {
                                 const source = media.querySelector('source');
                                 if (source) {
-                                    const src = media.getAttribute('data-src');
+                                    const src = source.getAttribute('data-src');
                                     if (src) {
                                         // Set source and load video
                                         source.src = src;
+                                        
+                                        // Force iOS to recognize the video element
                                         media.load();
                                         
                                         // Set a timeout to handle cases where video might not load
                                         const loadTimeout = setTimeout(() => {
                                             if (media.readyState < 3) { // HAVE_FUTURE_DATA
+                                                console.warn('Video loading timed out:', src);
                                                 handleVideoError(media, mediaWrapper);
                                             }
-                                        }, 10000); // 10 second timeout
+                                        }, 15000); // 15 second timeout
 
-                                        media.oncanplay = () => {
+                                        // Handle when enough data is available to start playing
+                                        const canPlayHandler = () => {
                                             clearTimeout(loadTimeout);
                                             media.classList.add('loaded');
                                             updateLoadingState(mediaWrapper, false);
+                                            media.removeEventListener('canplay', canPlayHandler);
                                         };
+                                        
+                                        media.addEventListener('canplay', canPlayHandler);
 
-                                        media.onerror = () => {
-                                            clearTimeout(loadTimeout);
-                                            handleVideoError(media, mediaWrapper);
+                                        // Handle when video can play through (useful for autoplay)
+                                        const canPlayThroughHandler = () => {
+                                            media.play().catch(e => {
+                                                console.log('Autoplay prevented:', e);
+                                                // Autoplay was prevented, but the video is still loaded
+                                            });
+                                            media.removeEventListener('canplaythrough', canPlayThroughHandler);
                                         };
+                                        
+                                        media.addEventListener('canplaythrough', canPlayThroughHandler);
+
+                                        // Error handling
+                                        const errorHandler = () => {
+                                            clearTimeout(loadTimeout);
+                                            console.error('Error loading video:', media.error, src);
+                                            handleVideoError(media, mediaWrapper);
+                                            media.removeEventListener('error', errorHandler);
+                                        };
+                                        
+                                        media.addEventListener('error', errorHandler);
                                     }
                                 }
                             }
@@ -1029,25 +1053,53 @@
         }
 
         // Gestion des erreurs de chargement des vidéos
-        window.handleVideoError = function(video) {
-            console.error('Erreur de chargement de la vidéo:', video.dataset.src);
-            const container = video.closest('.video-container');
-            if (container) {
-                const loading = container.querySelector('.media-loading');
-                const error = container.querySelector('.media-error');
-                if (loading) loading.style.display = 'none';
-                if (error) error.style.display = 'block';
+        function handleVideoError(video, mediaWrapper = null) {
+            console.error('Erreur de chargement de la vidéo:', video.error || 'Unknown error');
+            
+            // Find the error element
+            const wrapper = mediaWrapper || video.closest('.media-wrapper');
+            if (!wrapper) return;
+            
+            // Show error message
+            let errorElement = wrapper.querySelector('.media-error');
+            if (!errorElement) {
+                errorElement = document.createElement('div');
+                errorElement.className = 'media-error';
+                errorElement.style.cssText = 'display: block; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; text-align: center; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 5px; z-index: 10;';
+                
+                const source = video.querySelector('source');
+                const videoUrl = source ? source.src || source.getAttribute('data-src') : '#';
+                
+                errorElement.innerHTML = `
+                    Erreur de chargement de la vidéo<br>
+                    <small><a href="${videoUrl}" target="_blank" style="color: #4dabf7;">Ouvrir la vidéo dans un nouvel onglet</a></small>
+                `;
+                
+                wrapper.appendChild(errorElement);
+            } else {
+                errorElement.style.display = 'block';
             }
-        };
+            
+            // Hide loading indicator
+            updateLoadingState(wrapper, false, true);
+        }
 
         // Gestion du chargement réussi des vidéos
         window.handleVideoLoaded = function(video) {
-            console.log('Vidéo chargée avec succès:', video.dataset.src);
-            const container = video.closest('.video-container');
-            if (container) {
-                const loading = container.querySelector('.media-loading');
-                if (loading) loading.style.display = 'none';
+            console.log('Vidéo chargée avec succès:', video);
+            const mediaWrapper = video.closest('.media-wrapper');
+            if (mediaWrapper) {
+                updateLoadingState(mediaWrapper, false);
+                video.classList.add('loaded');
                 video.style.opacity = '1';
+                
+                // Try to play the video if it's the first one
+                if (video.closest('.item.active')) {
+                    video.play().catch(e => {
+                        console.log('Autoplay prevented, showing controls');
+                        video.controls = true;
+                    });
+                }
             }
         };
 
