@@ -796,6 +796,11 @@
                         activeItem.play().catch(e => console.log('Autoplay was prevented.'));
                     };
                     activeItem.load();
+                } else {
+                     activeItem.onload = () => {
+                        loadingIndicator.style.display = 'none';
+                        activeItem.classList.add('loaded');
+                    };
                 }
                 delete activeItem.dataset.src;
             }
