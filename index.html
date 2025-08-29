@@ -250,6 +250,38 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        .play-button-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80px;
+            height: 80px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 3;
+            display: none; /* Hidden by default */
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .play-button-overlay::after {
+            content: '';
+            display: block;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 20px 0 20px 30px;
+            border-color: transparent transparent transparent #fff;
+            margin-left: 5px;
+        }
+
+        .play-button-overlay:hover {
+            background: rgba(0, 0, 0, 0.7);
+        }
         
         .video-container {
             position: relative;
@@ -620,6 +652,7 @@
                         <div class="media-loading">
                             <div class="spinner"></div>
                         </div>
+                        <div class="play-button-overlay"></div>
                     </div>
                     <div class="item-info">
                         <h2 class="item-title">${video.title}</h2>
@@ -793,7 +826,21 @@
                     activeItem.onloadeddata = () => {
                         loadingIndicator.style.display = 'none';
                         activeItem.classList.add('loaded');
-                        activeItem.play().catch(e => console.log('Autoplay was prevented.'));
+                        activeItem.muted = true;
+                        const playPromise = activeItem.play();
+                        if (playPromise !== undefined) {
+                            playPromise.catch(error => {
+                                console.log('Autoplay was prevented. Showing play button.');
+                                const playButton = mediaWrapper.querySelector('.play-button-overlay');
+                                if (playButton) {
+                                    playButton.style.display = 'flex';
+                                    playButton.addEventListener('click', () => {
+                                        activeItem.play();
+                                        playButton.style.display = 'none';
+                                    }, { once: true });
+                                }
+                            });
+                        }
                     };
                     activeItem.load();
                 } else {
