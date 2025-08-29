@@ -879,28 +879,30 @@
             document.getElementById('total-items').textContent = itemsPerSection[currentSection];
         }
 
-        // Navigation clavier
-        document.addEventListener('keydown', (e) => {
-            switch(e.key) {
-                case 'ArrowUp':
-                    e.preventDefault();
-                    changeSection(currentSection - 1);
-                    break;
-                case 'ArrowDown':
-                    e.preventDefault();
-                    changeSection(currentSection + 1);
-                    break;
-                case 'ArrowLeft':
-                    e.preventDefault();
-                    changeItem('prev');
-                    break;
-                case 'ArrowRight':
-                case ' ':
-                    e.preventDefault();
-                    changeItem('next');
-                    break;
-            }
-        });
+                // Navigation clavier
+        function setupKeyboardNavigation() {
+            document.addEventListener('keydown', (e) => {
+                switch(e.key) {
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        changeSection(currentSection - 1);
+                        break;
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        changeSection(currentSection + 1);
+                        break;
+                    case 'ArrowLeft':
+                        e.preventDefault();
+                        changeItem('prev');
+                        break;
+                    case 'ArrowRight':
+                    case ' ':
+                        e.preventDefault();
+                        changeItem('next');
+                        break;
+                }
+            });
+        }
 
         // Préchargement
         function preloadContent() {
@@ -945,12 +947,11 @@
         sections[newSection].classList.add('active');
         sections[newSection].classList.remove('prev');
         menuItems[newSection].classList.add('active');
+        
+        currentSection = newSection;
+        updateCounters();
+        activateCurrentItem();
     }, 100);
-
-    currentSection = newSection;
-    updateCounters();
-    activateCurrentItem();
-}
 
 // Gestion du lazy loading pour les images uniquement
 function initializeLazyLoading() {
@@ -982,31 +983,9 @@ function initializeLazyLoading() {
                             if (mediaWrapper) {
                                 const loadingIndicator = mediaWrapper.querySelector('.media-loading');
                                 if (loadingIndicator) {
-    // Create or update error element
-    let errorElement = wrapper.querySelector('.media-error');
-    if (!errorElement) {
-        errorElement = document.createElement('div');
-        errorElement.className = 'media-error';
-        wrapper.appendChild(errorElement);
-    }
-
-    // Style the error element
-    errorElement.style.cssText = `
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        text-align: center;
-        color: #fff;
-        background-color: rgba(0,0,0,0.8);
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        z-index: 10;
-    `;
+                                    loadingIndicator.style.display = 'none';
+                                }
+                            }
 
     // Add retry button
     const retryButton = document.createElement('button');
@@ -1162,30 +1141,36 @@ window.handleVideoLoaded = function(video) {
     }
 };
 
-// Initialisation
-window.addEventListener('load', () => {
-    setTimeout(() => {
-        const preloader = document.querySelector('.preloader');
-        if (preloader) {
-            preloader.classList.add('hidden');
+        // Initialisation
+        function init() {
+            const preloader = document.querySelector('.preloader');
+            if (preloader) {
+                preloader.classList.add('hidden');
+            }
+            // Chargement du portfolio et initialisation
+            loadPortfolioData();
+            initCursor();
+            initGhostMenu();
+            preloadContent();
+            setupKeyboardNavigation(); // Initialize keyboard navigation
         }
-        // Chargement du portfolio et initialisation
-        loadPortfolioData();
-        initCursor();
-        initGhostMenu();
-        preloadContent();
-    }, 800);
-});
 
-// Responsive
-window.addEventListener('resize', () => {
-    if (window.innerWidth <= 768) {
-        cursor.style.display = 'none';
-    } else {
-        cursor.style.display = 'block';
-        initCursor();
-    }
-});
+        // Responsive
+        function handleResize() {
+            if (window.innerWidth <= 768) {
+                cursor.style.display = 'none';
+            } else {
+                cursor.style.display = 'block';
+                initCursor();
+            }
+        }
+
+        // Event listeners
+        window.addEventListener('load', () => {
+            setTimeout(init, 800);
+        });
+
+        window.addEventListener('resize', handleResize);
     </script>
 </body>
 </html>
