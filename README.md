@@ -12,3 +12,21 @@ This is a modern, performant portfolio website that showcases video and photo wo
 - Media hosted on Cloudflare R2 for optimal performance
 - Custom domain support for media
 
+## 🔧 Development
+
+To run the website locally, you can use Python's built-in web server:
+
+```bash
+python3 -m http.server 8000
+```
+
+Then, open your browser and navigate to `http://localhost:8000`.
+
+## 🛠️ Changelog
+
+- **August 2025:**
+  - Fixed a critical JavaScript syntax error that prevented the application from initializing correctly.
+  - Resolved an issue where the initial video would not load or display due to incorrect activation logic.
+  - Restructured the entire script to improve readability, maintainability, and performance.
+  - Ensured all portfolio media (videos and images) load correctly on demand.
+
