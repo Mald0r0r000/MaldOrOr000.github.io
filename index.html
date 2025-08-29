@@ -613,24 +613,30 @@
                     mediaElement = `
                         <div class="video-container">
                             <div class="video-wrapper">
-                                <video class="media lazy-load" 
-                                       ${index === 0 ? 'autoplay' : 'preload="none"'} 
+                                <video class="media" 
+                                       ${index === 0 ? 'autoplay' : 'preload="metadata"'} 
                                        muted 
                                        loop 
                                        playsinline 
                                        crossorigin="anonymous"
                                        aria-label="${video.title}"
-                                       onerror="handleVideoError(this)"
+                                       onerror="handleVideoError(this, this.closest('.video-wrapper'))"
                                        onloadeddata="handleVideoLoaded(this)">
-                                    <source data-src="${video.media}" type="video/mp4">
+                                    <source src="${video.media}" type="video/mp4">
                                     Votre navigateur ne supporte pas la lecture de vidéos HTML5.
                                 </video>
-                                <div class="media-loading">
+                                <div class="media-loading" style="display: ${index === 0 ? 'flex' : 'none'};">
                                     <div class="spinner"></div>
+                                    <div class="loading-text">Chargement...</div>
                                 </div>
-                                <div class="media-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; text-align: center; background: rgba(0,0,0,0.8); padding: 20px; border-radius: 5px; z-index: 10;">
+                                <div class="media-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; text-align: center; background: rgba(0,0,0,0.9); padding: 20px; border-radius: 8px; z-index: 10; max-width: 90%;">
                                     Erreur de chargement de la vidéo<br>
-                                    <small><a href="${video.media}" target="_blank" style="color: #4dabf7;">Ouvrir la vidéo dans un nouvel onglet</a></small>
+                                    <small><a href="${video.media}" target="_blank" style="color: #4dabf7;" class="open-tab">Ouvrir la vidéo dans un nouvel onglet</a></small>
+                                    <div class="retry-button" style="margin-top: 10px;">
+                                        <button onclick="const video = this.closest('.video-wrapper').querySelector('video'); video.load(); this.disabled = true; this.textContent = 'Chargement...'" style="background: #4dabf7; color: white; border: none; padding: 5px 15px; border-radius: 3px; cursor: pointer;">
+                                            Réessayer
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>`;
@@ -933,317 +939,253 @@
                 loadingIndicator.style.display = isLoading ? 'flex' : 'none';
             }
             
-            if (isError) {
-                mediaWrapper.classList.add('error');
-            }
-        }
 
-        // Gestion du lazy loading
-        function initializeLazyLoading() {
-            const lazyMedia = document.querySelectorAll('.lazy-load');
-            
-            if ('IntersectionObserver' in window) {
-                const lazyMediaObserver = new IntersectionObserver((entries, observer) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            const media = entry.target;
-                            const mediaWrapper = media.closest('.media-wrapper');
-                            
-                            // Afficher l'indicateur de chargement
+    // Animation entrée nouvelle section
+    setTimeout(() => {
+        sections[newSection].classList.add('active');
+        sections[newSection].classList.remove('prev');
+        menuItems[newSection].classList.add('active');
+    }, 100);
+
+    currentSection = newSection;
+    updateCounters();
+    activateCurrentItem();
+}
+
+// Gestion du lazy loading pour les images uniquement
+function initializeLazyLoading() {
+    const lazyImages = document.querySelectorAll('img.lazy-load');
+    
+    if ('IntersectionObserver' in window) {
+        const lazyImageObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const img = entry.target;
+                    const src = img.getAttribute('data-src');
+                    const mediaWrapper = img.closest('.media-wrapper');
+                    
+                    if (src) {
+                        // Afficher l'indicateur de chargement
+                        if (mediaWrapper) {
+                            const loadingIndicator = mediaWrapper.querySelector('.media-loading');
+                            if (loadingIndicator) {
+                                loadingIndicator.style.display = 'flex';
+                            }
+                        }
+                        
+                        // Charger l'image
+                        img.src = src;
+                        img.classList.add('loaded');
+                        
+                        // Cacher l'indicateur de chargement une fois l'image chargée
+                        img.onload = () => {
                             if (mediaWrapper) {
                                 const loadingIndicator = mediaWrapper.querySelector('.media-loading');
                                 if (loadingIndicator) {
-                                    loadingIndicator.style.display = 'flex';
-                                }
-                            }
-                            
-                            // Charger la source
-                            if (media.tagName === 'IMG') {
-                                const src = media.getAttribute('data-src');
-                                if (src) {
-                                    media.src = src;
-                                    media.onload = () => {
-                                        media.classList.add('loaded');
-                                        if (mediaWrapper) {
-                                            const loadingIndicator = mediaWrapper.querySelector('.media-loading');
-                                            if (loadingIndicator) {
-                                                loadingIndicator.style.display = 'none';
-                                            }
-                                        }
-                                    };
-                                }
-                            } else if (media.tagName === 'VIDEO') {
-                                const source = media.querySelector('source[data-src]');
-                                if (source) {
-                                    const src = source.getAttribute('data-src');
-                                    if (src) {
-                                        // Show loading state
-                                        updateLoadingState(mediaWrapper, true);
-                                        
-                                        // Set source and load video
-                                        source.src = src;
-                                        media.load();
-                                        
-                                        // Set a timeout to handle cases where video might not load
-                                        const loadTimeout = setTimeout(() => {
-                                            if (media.readyState < 3) { // HAVE_FUTURE_DATA
-                                                console.warn('Video loading timed out:', src);
-                                                handleVideoError(media, mediaWrapper);
-                                            }
-                                        }, 10000); // 10 second timeout
+    // Create or update error element
+    let errorElement = wrapper.querySelector('.media-error');
+    if (!errorElement) {
+        errorElement = document.createElement('div');
+        errorElement.className = 'media-error';
+        wrapper.appendChild(errorElement);
+    }
 
-                                        // Handle when enough data is available to start playing
-                                        const canPlayHandler = () => {
-                                            clearTimeout(loadTimeout);
-                                            media.classList.add('loaded');
-                                            updateLoadingState(mediaWrapper, false);
-                                            
-                                            // Try to play the video if it's in the active item
-                                            if (media.closest('.item.active')) {
-                                                const playPromise = media.play();
-                                                if (playPromise !== undefined) {
-                                                    playPromise.catch(error => {
-                                                        console.log('Autoplay prevented, showing controls');
-                                                        media.controls = true;
-                                                    });
-                                                }
-                                            }
-                                        };
-                                        
-                                        // Handle when video data is loaded
-                                        const loadedDataHandler = () => {
-                                            clearTimeout(loadTimeout);
-                                            media.classList.add('loaded');
-                                            updateLoadingState(mediaWrapper, false);
-                                        };
+    // Style the error element
+    errorElement.style.cssText = `
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        text-align: center;
+        color: #fff;
+        background-color: rgba(0,0,0,0.8);
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 10;
+    `;
 
-                                        // Error handling
-                                        const errorHandler = (e) => {
-                                            clearTimeout(loadTimeout);
-                                            console.error('Error loading video:', media.error || e, src);
-                                            handleVideoError(media, mediaWrapper);
-                                        };
-                                        
-                                        // Add event listeners
-                                        media.addEventListener('canplay', canPlayHandler, { once: true });
-                                        media.addEventListener('loadeddata', loadedDataHandler, { once: true });
-                                        media.addEventListener('error', errorHandler, { once: true });
-                                        media.addEventListener('stalled', errorHandler, { once: true });
-                                        media.addEventListener('abort', errorHandler, { once: true });
-                                        
-                                        // Clean up function
-                                        const cleanup = () => {
-                                            media.removeEventListener('canplay', canPlayHandler);
-                                            media.removeEventListener('loadeddata', loadedDataHandler);
-                                            media.removeEventListener('error', errorHandler);
-                                            media.removeEventListener('stalled', errorHandler);
-                                            media.removeEventListener('abort', errorHandler);
-                                            clearTimeout(loadTimeout);
-                                        };
-                                        
-                                        // Clean up when video is unloaded
-                                        const unloadObserver = new MutationObserver(() => {
-                                            if (!document.body.contains(media)) {
-                                                cleanup();
-                                                unloadObserver.disconnect();
-                                            }
-                                        });
-                                        unloadObserver.observe(document.body, { childList: true, subtree: true });
-                                    }
-                                }
-                            }
-                            
-                            observer.unobserve(media);
-                        }
-                    });
-                });
-                
-                lazyMedia.forEach(media => {
-                    lazyMediaObserver.observe(media);
-                });
-            } else {
-                // Fallback pour les navigateurs qui ne supportent pas IntersectionObserver
-                lazyMedia.forEach(media => {
-                    if (media.tagName === 'IMG') {
-                        const src = media.getAttribute('data-src');
-                        if (src) {
-                            media.src = src;
-                        }
-                    } else if (media.tagName === 'VIDEO') {
-                        const source = media.querySelector('source');
-                        if (source) {
-                            const src = media.getAttribute('data-src');
-                            if (src) {
-                                source.src = src;
-                                media.load();
-                            }
-                        }
-                    }
+    // Add retry button
+    const retryButton = document.createElement('button');
+    retryButton.textContent = 'Réessayer';
+    retryButton.style.cssText = `
+        margin-top: 15px;
+        padding: 8px 16px;
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: background-color 0.3s;
+    `;
+
+    // Hover effect for button
+    retryButton.onmouseover = () => retryButton.style.backgroundColor = '#45a049';
+    retryButton.onmouseout = () => retryButton.style.backgroundColor = '#4CAF50';
+
+    retryButton.onclick = function() {
+        errorElement.style.display = 'none';
+        updateLoadingState(wrapper, true);
+
+        // Reset video source to force reload
+        if (source && source.src) {
+            // Force a new request by adding a timestamp
+            const separator = source.src.includes('?') ? '&' : '?';
+            source.src = source.src.split('?')[0] + separator + 't=' + Date.now();
+
+            // Remove all event listeners to prevent duplicates
+            const newVideo = video.cloneNode(true);
+            video.parentNode.replaceChild(newVideo, video);
+
+            // Load and play the new video
+            newVideo.load();
+            const playPromise = newVideo.play();
+
+            if (playPromise !== undefined) {
+                playPromise.catch(e => {
+                    console.log('Autoplay after retry prevented, showing controls');
+                    newVideo.controls = true;
                 });
             }
         }
+    };
 
-        // Gestion des erreurs de chargement des vidéos
-        function handleVideoError(video, mediaWrapper = null) {
-            const error = video.error || {};
-            const wrapper = mediaWrapper || video.closest('.media-wrapper');
+    // Add open in new tab button
+    const openButton = document.createElement('a');
+    openButton.href = videoUrl;
+    openButton.target = '_blank';
+    openButton.rel = 'noopener noreferrer';
+    openButton.textContent = 'Ouvrir dans un nouvel onglet';
+    openButton.style.cssText = `
+        margin-top: 10px;
+        color: #4CAF50;
+        text-decoration: none;
+        font-size: 14px;
+        display: inline-block;
+        padding: 5px 10px;
+        border: 1px solid #4CAF50;
+        border-radius: 4px;
+        transition: all 0.3s;
+    `;
+
+    // Hover effect for open button
+    openButton.onmouseover = () => {
+        openButton.style.backgroundColor = '#4CAF50';
+        openButton.style.color = 'white';
+    };
+    openButton.onmouseout = () => {
+        openButton.style.backgroundColor = 'transparent';
+        openButton.style.color = '#4CAF50';
+    };
+
+    // Create error content
+    const errorContent = document.createElement('div');
+    errorContent.style.maxWidth = '80%';
+
+    const errorTitleEl = document.createElement('div');
+    errorTitleEl.textContent = errorTitle;
+    errorTitleEl.style.cssText = 'font-size: 1.2em; font-weight: bold; margin-bottom: 10px;';
+
+    const errorTextEl = document.createElement('div');
+    errorTextEl.textContent = errorDetailsText;
+    errorTextEl.style.marginBottom = '15px';
+
+    // Add elements to error content
+    errorContent.appendChild(errorTitleEl);
+    errorContent.appendChild(errorTextEl);
+
+    // Clear previous content and add new content
+    errorElement.innerHTML = '';
+    errorElement.appendChild(errorContent);
+
+    // Only show retry button for recoverable errors
+    if (showRetry) {
+        errorElement.appendChild(retryButton);
+        errorElement.appendChild(document.createElement('br'));
+        errorElement.appendChild(document.createElement('br'));
+    }
+
+    // Always show open in new tab option
+    errorElement.appendChild(openButton);
+
+    // Hide loading indicator
+    updateLoadingState(wrapper, false);
+
+    function getNetworkStateText(state) {
+        const states = ['NETWORK_EMPTY', 'NETWORK_IDLE', 'NETWORK_LOADING', 'NETWORK_NO_SOURCE'];
+        return states[state] || state;
+    }
+
+    function getReadyStateText(state) {
+        const states = ['HAVE_NOTHING', 'HAVE_METADATA', 'HAVE_CURRENT_DATA', 'HAVE_FUTURE_DATA', 'HAVE_ENOUGH_DATA'];
+        return states[state] || state;
+    }
+}
+
+// Gestion du chargement réussi des vidéos
+window.handleVideoLoaded = function(video) {
+    console.log('Vidéo chargée avec succès:', video);
+    const mediaWrapper = video.closest('.video-wrapper') || video.closest('.media-wrapper');
+    
+    if (mediaWrapper) {
+        updateLoadingState(mediaWrapper, false);
+        video.classList.add('loaded');
+        video.style.opacity = '1';
+        
+        // For the first video, try to autoplay
+        if (video.parentElement.closest('.item.active')) {
+            const playPromise = video.play();
             
-            // Get video source information
-            const source = video.querySelector('source');
-            const videoUrl = source ? (source.src || source.getAttribute('data-src')) : '#';
-            const isCorsIssue = video.error && (video.error.message || '').includes('Failed to fetch');
-            
-            // Prepare error details for logging
-            const errorDetails = {
-                code: error.code,
-                message: error.message,
-                name: error.name,
-                networkState: getNetworkStateText(video.networkState),
-                readyState: getReadyStateText(video.readyState),
-                currentSrc: video.currentSrc,
-                sources: Array.from(video.querySelectorAll('source')).map(s => ({
-                    src: s.src,
-                    dataSrc: s.getAttribute('data-src'),
-                    type: s.type
-                })),
-                isCorsIssue: isCorsIssue,
-                timestamp: new Date().toISOString()
-            };
-            
-            console.error('Erreur de chargement de la vidéo:', errorDetails);
-            
-            if (!wrapper) {
-                console.error('Could not find media wrapper for video');
-                return;
-            }
-            
-            // Prepare user-friendly error message
-            let errorMessage = 'Erreur de chargement de la vidéo';
-            let errorDetailsText = '';
-            
-            if (isCorsIssue) {
-                errorMessage = 'Problème de chargement de la vidéo';
-                errorDetailsText = 'La vidéo ne peut pas être chargée en raison de restrictions de sécurité. Veuillez vérifier la configuration CORS du serveur.';
-            } else if (error.code !== undefined) {
-                switch(error.code) {
-                    case 1: // MEDIA_ERR_ABORTED
-                        errorMessage = 'Lecture annulée';
-                        errorDetailsText = 'Le chargement de la vidéo a été annulé.';
-                        break;
-                    case 2: // MEDIA_ERR_NETWORK
-                        errorMessage = 'Erreur réseau';
-                        errorDetailsText = 'Impossible de charger la vidéo. Vérifiez votre connexion Internet.';
-                        break;
-                    case 3: // MEDIA_ERR_DECODE
-                        errorMessage = 'Erreur de décodage';
-                        errorDetailsText = 'La vidéo est endommagée ou utilise un format non supporté.';
-                        break;
-                    case 4: // MEDIA_ERR_SRC_NOT_SUPPORTED
-                        errorMessage = 'Format non supporté';
-                        errorDetailsText = 'Le format de la vidéo n\'est pas supporté par votre navigateur.';
-                        break;
-                    default:
-                        errorMessage = 'Erreur inconnue';
-                        errorDetailsText = 'Une erreur inattendue est survenue lors du chargement de la vidéo.';
-                }
-            }
-            
-            // Create or update error element
-            let errorElement = wrapper.querySelector('.media-error');
-            if (!errorElement) {
-                errorElement = document.createElement('div');
-                errorElement.className = 'media-error';
-                wrapper.appendChild(errorElement);
-            }
-            
-            // Set error content
-            errorElement.style.cssText = 'display: block; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; text-align: center; background: rgba(0,0,0,0.9); padding: 20px; border-radius: 5px; z-index: 10; max-width: 90%;';
-            
-            errorElement.innerHTML = `
-                <div style="margin-bottom: 10px; font-size: 1.1em; font-weight: bold;">${errorMessage}</div>
-                <div style="margin-bottom: 15px; font-size: 0.9em; opacity: 0.8;">
-                    ${errorDetailsText}
-                </div>
-                <div style="margin-bottom: 15px; font-size: 0.8em; opacity: 0.6; font-family: monospace; word-break: break-all;">
-                    ${errorDetails.networkState}<br>
-                    ${errorDetails.readyState}<br>
-                    ${videoUrl}
-                </div>
-                ${videoUrl !== '#' ? `
-                <div style="margin-top: 15px;">
-                    <a href="${videoUrl}" target="_blank" style="color: #4dabf7; text-decoration: underline; margin: 0 5px;">
-                        Ouvrir dans un nouvel onglet
-                    </a>
-                    <button onclick="this.parentNode.querySelector('a').click();" 
-                            style="background: #4dabf7; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; margin: 0 5px;">
-                        Télécharger la vidéo
-                    </button>
-                </div>` : ''}
-            `;
-            
-            // Show controls to allow manual interaction
-            video.controls = true;
-            
-            // Hide loading indicator and mark as error
-            updateLoadingState(wrapper, false, true);
-            
-            // Helper functions for state text
-            function getNetworkStateText(state) {
-                const states = ['NETWORK_EMPTY', 'NETWORK_IDLE', 'NETWORK_LOADING', 'NETWORK_NO_SOURCE'];
-                return `Network: ${states[state] || state}`;
-            }
-            
-            function getReadyStateText(state) {
-                const states = ['HAVE_NOTHING', 'HAVE_METADATA', 'HAVE_CURRENT_DATA', 'HAVE_FUTURE_DATA', 'HAVE_ENOUGH_DATA'];
-                return `Ready: ${states[state] || state}`;
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.log('Autoplay prevented, showing controls');
+                    video.controls = true;
+                    
+                    // Add play button overlay if autoplay fails
+                    const playOverlay = document.createElement('div');
+                    playOverlay.className = 'play-overlay';
+                    playOverlay.innerHTML = '▶';
+                    playOverlay.style.cssText = 'position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:48px; color:white; background:rgba(0,0,0,0.5); width:80px; height:80px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:5;';
+                    playOverlay.onclick = () => {
+                        video.play()
+                            .then(() => playOverlay.style.display = 'none')
+                            .catch(e => console.error('Playback failed:', e));
+                    };
+                    mediaWrapper.appendChild(playOverlay);
+                });
             }
         }
+    }
+};
 
-        // Gestion du chargement réussi des vidéos
-        window.handleVideoLoaded = function(video) {
-            console.log('Vidéo chargée avec succès:', video);
-            const mediaWrapper = video.closest('.media-wrapper');
-            if (mediaWrapper) {
-                updateLoadingState(mediaWrapper, false);
-                video.classList.add('loaded');
-                video.style.opacity = '1';
-                
-                // Force iOS to recognize the video element
-                const playPromise = video.play();
-                
-                if (playPromise !== undefined) {
-                    playPromise.catch(error => {
-                        console.log('Autoplay prevented, showing controls');
-                        video.controls = true;
-                    });
-                }
-            }
-        };
+// Initialisation
+window.addEventListener('load', () => {
+    setTimeout(() => {
+        const preloader = document.querySelector('.preloader');
+        if (preloader) {
+            preloader.classList.add('hidden');
+        }
+        // Chargement du portfolio et initialisation
+        loadPortfolioData();
+        initCursor();
+        initGhostMenu();
+        preloadContent();
+    }, 800);
+});
 
-        // Initialisation
-        window.addEventListener('load', () => {
-            setTimeout(() => {
-                const preloader = document.querySelector('.preloader');
-                if (preloader) {
-                    preloader.classList.add('hidden');
-                }
-                // Chargement du portfolio et initialisation
-                loadPortfolioData();
-                initCursor();
-                initGhostMenu();
-                preloadContent();
-            }, 800);
-        });
-
-        // Responsive
-        window.addEventListener('resize', () => {
-            if (window.innerWidth <= 768) {
-                cursor.style.display = 'none';
-            } else {
-                cursor.style.display = 'block';
-                initCursor();
-            }
-        });
+// Responsive
+window.addEventListener('resize', () => {
+    if (window.innerWidth <= 768) {
+        cursor.style.display = 'none';
+    } else {
+        cursor.style.display = 'block';
+        initCursor();
+    }
+});
     </script>
 </body>
 </html>
