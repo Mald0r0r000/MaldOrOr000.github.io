@@ -524,17 +524,19 @@
     </div>
 
     <script>
-    // Variables globales
-    let currentSection = 0;
-    let currentItems = [0, 0];
-    const totalSections = 2;
-    let itemsPerSection = [0, 0];
-    let isInitialized = false;
-    
-    // Initialize the application when the DOM is fully loaded
     document.addEventListener('DOMContentLoaded', () => {
-        init();
-    });
+        // Variables globales
+        let currentSection = 0;
+        let currentItems = [0, 0];
+        const totalSections = 2;
+        let itemsPerSection = [0, 0];
+        let isInitialized = false;
+
+        const sections = document.querySelectorAll('.section');
+        const menuItems = document.querySelectorAll('.menu-item');
+        const ghostMenu = document.querySelector('.ghost-menu');
+        const cursor = document.querySelector('.custom-cursor');
+        const menuTrigger = document.querySelector('.menu-trigger');
 
         // Dynamic portfolio loading with error handling
         async function loadPortfolioData() {
@@ -574,8 +576,8 @@
                 itemsPerSection[1] = photos.length;
 
                 updateCounters();
+                initializeLazyLoading();
                 
-                // Supprimer l'indicateur de chargement
                 loadingIndicator.remove();
                 return Promise.resolve();
             } catch (error) {
@@ -583,7 +585,6 @@
                 loadingIndicator.textContent = 'Erreur de chargement. Veuillez réessayer plus tard.';
                 loadingIndicator.className = 'error-message';
                 
-                // Afficher un message d'erreur plus détaillé en mode développement
                 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
                     console.error('Détails de l\'erreur:', error);
                 }
@@ -610,15 +611,13 @@
             
             videos.forEach((video, index) => {
                 const item = document.createElement('div');
-                item.className = 'media-item';
+                item.className = 'media-item item'; // Added 'item' class for consistency
                 item.dataset.index = index;
+                item.dataset.item = index; // Added for consistency with photo section
                 
                 item.innerHTML = `
                     <div class="media-wrapper">
-                        <video class="lazy" data-src="${video.media}" loop muted playsinline
-                            onerror="handleVideoError(this, this.closest('.media-wrapper'))"
-                            onloadeddata="handleVideoLoaded(this)">
-                        </video>
+                        <video class="lazy" data-src="${video.media}" loop muted playsinline></video>
                         <div class="media-loading">
                             <div class="spinner"></div>
                             <div class="loading-text">Chargement...</div>
@@ -641,32 +640,24 @@
                     </div>
                 `;
 
-                // Add event listener for the retry button
+                const videoElement = item.querySelector('video');
+                videoElement.addEventListener('error', () => handleVideoError(videoElement));
+                videoElement.addEventListener('loadeddata', () => handleVideoLoaded(videoElement));
+
                 const retryButton = item.querySelector('.retry-button');
                 if (retryButton) {
-                    retryButton.addEventListener('click', function() {
-                        const videoElement = this.closest('.media-wrapper').querySelector('video');
-                        const loadingElement = this.closest('.media-wrapper').querySelector('.media-loading');
-                        const errorElement = this.closest('.media-wrapper').querySelector('.media-error');
-                        
-                        if (videoElement) {
-                            // Show loading state
-                            loadingElement.style.display = 'flex';
-                            errorElement.style.display = 'none';
-                            this.disabled = true;
-                            this.textContent = 'Chargement...';
-                            
-                            // Reset and reload the video
-                            videoElement.load();
+                    retryButton.addEventListener('click', () => {
+                        const videoEl = item.querySelector('video');
+                        if (videoEl) {
+                            const mediaWrapper = videoEl.closest('.media-wrapper');
+                            updateLoadingState(mediaWrapper, true, false);
+                            videoEl.load();
                         }
                     });
                 }
 
                 videoSection.appendChild(item);
             });
-            
-            // Initialiser le lazy loading après l'ajout des éléments
-            initializeLazyLoading();
         }
 
         function generatePhotoSection(photos) {
@@ -693,8 +684,7 @@
                 item.setAttribute('role', 'article');
                 item.setAttribute('aria-label', `Photo: ${photo.title}`);
                 
-                // Création d'un placeholder SVG minimal pour le lazy loading
-                const placeholderSVG = 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 1 1\'%3E%3C/svg%3E';
+                const placeholderSVG = 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 1 1\'/%3E%3C/svg%3E';
                 
                 item.innerHTML = `
                     <div class="media-wrapper">
@@ -702,8 +692,7 @@
                              data-src="${photo.media}" 
                              alt="${photo.description || photo.title}" 
                              class="media parallax-element lazy-load" 
-                             loading="lazy"
-                             onerror="this.onerror=null; this.src='data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22800%22%20height%3D%22600%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20800%20600%22%20preserveAspectRatio%3D%22none%22%3E%3Cdefs%3E%3Cstyle%20type%3D%22text%2Fcss%22%3E%23holder_18945b1b2c6%20text%20%7B%20fill%3A%23AAAAAA%3Bfont-weight%3Abold%3Bfont-family%3AArial%2C%20Helvetica%2C%20Open%20Sans%2C%20sans-serif%2C%20monospace%3Bfont-size%3A40pt%20%7D%20%3C%2Fstyle%3E%3C%2Fdefs%3E%3Cg%20id%3D%22holder_18945b1b2c6%22%3E%3Crect%20width%3D%22800%22%20height%3D%22600%22%20fill%3D%22%23EEEEEE%22%3E%3C%2Frect%3E%3Cg%3E%3Ctext%20x%3D%22277%22%20y%3D%22329%22%3EImage%20non%20chargée%3C%2Ftext%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E';">
+                             loading="lazy">
                         <div class="media-loading">
                             <div class="spinner"></div>
                         </div>
@@ -716,18 +705,8 @@
                 
                 photoSection.appendChild(item);
             });
-            
-            // Initialiser le lazy loading après l'ajout des éléments
-            initializeLazyLoading();
-        } // Nombre d'items par section
+        }
 
-        const sections = document.querySelectorAll('.section');
-        const menuItems = document.querySelectorAll('.menu-item');
-        const ghostMenu = document.querySelector('.ghost-menu');
-        const cursor = document.querySelector('.custom-cursor');
-        const menuTrigger = document.querySelector('.menu-trigger');
-
-        // Curseur personnalisé
         function initCursor() {
             if (window.innerWidth > 768) {
                 document.addEventListener('mousemove', (e) => {
@@ -735,7 +714,6 @@
                     cursor.style.top = e.clientY + 'px';
                 });
 
-                // Effet hover
                 const interactiveElements = document.querySelectorAll('.menu-item, .item');
                 interactiveElements.forEach(el => {
                     el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
@@ -744,7 +722,6 @@
             }
         }
 
-        // Menu fantôme
         function initGhostMenu() {
             let menuTimeout;
 
@@ -759,12 +736,10 @@
                 }, 1000);
             };
 
-            // Déclenchement par zone haut de l'écran
             menuTrigger.addEventListener('mouseenter', showMenu);
             ghostMenu.addEventListener('mouseenter', showMenu);
             ghostMenu.addEventListener('mouseleave', hideMenu);
 
-            // Déclenchement par mouvement de souris en haut
             document.addEventListener('mousemove', (e) => {
                 if (e.clientY < 50) {
                     showMenu();
@@ -773,7 +748,6 @@
                 }
             });
 
-            // Navigation par clic menu
             menuItems.forEach((item, index) => {
                 item.addEventListener('click', () => {
                     changeSection(index);
@@ -781,11 +755,9 @@
             });
         }
 
-        // Changer de section (haut/bas)
         function changeSection(newSection) {
             if (newSection < 0 || newSection >= totalSections || newSection === currentSection) return;
 
-            // Animation sortie section actuelle
             sections[currentSection].classList.remove('active');
             menuItems[currentSection].classList.remove('active');
             
@@ -795,7 +767,6 @@
                 sections[currentSection].classList.remove('prev');
             }
 
-            // Animation entrée nouvelle section
             setTimeout(() => {
                 sections[newSection].classList.add('active');
                 sections[newSection].classList.remove('prev');
@@ -807,43 +778,42 @@
             activateCurrentItem();
         }
 
-        // Changer d'item dans la section (gauche/droite)
         function changeItem(direction) {
-            const currentItems_section = currentItems[currentSection];
             const totalItems = itemsPerSection[currentSection];
-            let newItem;
+            if (totalItems <= 1) return;
+
+            const currentItemIndex = currentItems[currentSection];
+            let newItemIndex;
 
             if (direction === 'next') {
-                newItem = (currentItems_section + 1) % totalItems;
+                newItemIndex = (currentItemIndex + 1) % totalItems;
             } else {
-                newItem = (currentItems_section - 1 + totalItems) % totalItems;
+                newItemIndex = (currentItemIndex - 1 + totalItems) % totalItems;
             }
 
-            // Désactiver item actuel
-            const currentItemEl = sections[currentSection].querySelector(`.item[data-item="${currentItems_section}"]`);
-            currentItemEl.classList.remove('active');
-            
-            if (direction === 'next') {
-                currentItemEl.classList.add('prev');
-            } else {
-                currentItemEl.classList.remove('prev');
+            const currentItemEl = sections[currentSection].querySelector(`.item[data-item="${currentItemIndex}"]`);
+            if (currentItemEl) {
+                currentItemEl.classList.remove('active');
+                if (direction === 'next') {
+                    currentItemEl.classList.add('prev');
+                } else {
+                    currentItemEl.classList.remove('prev');
+                }
             }
 
-            // Activer nouvel item
             setTimeout(() => {
-                const newItemEl = sections[currentSection].querySelector(`.item[data-item="${newItem}"]`);
-                newItemEl.classList.add('active');
-                newItemEl.classList.remove('prev');
-                
-                // Effet parallax subtil
-                addParallaxEffect(newItemEl);
+                const newItemEl = sections[currentSection].querySelector(`.item[data-item="${newItemIndex}"]`);
+                if (newItemEl) {
+                    newItemEl.classList.add('active');
+                    newItemEl.classList.remove('prev');
+                    addParallaxEffect(newItemEl);
+                }
             }, 100);
 
-            currentItems[currentSection] = newItem;
+            currentItems[currentSection] = newItemIndex;
             updateCounters();
         }
 
-        // Activer l'item actuel de la section
         function activateCurrentItem() {
             const items = sections[currentSection].querySelectorAll('.item');
             items.forEach((item, index) => {
@@ -855,7 +825,6 @@
             });
         }
 
-        // Effets parallax subtils
         function addParallaxEffect(element) {
             const media = element.querySelector('.parallax-element');
             if (!media) return;
@@ -871,17 +840,13 @@
             }, 2000);
         }
 
-        // Mettre à jour les compteurs
         function updateCounters() {
             document.getElementById('current-section').textContent = currentSection + 1;
             document.getElementById('current-item').textContent = currentItems[currentSection] + 1;
             document.getElementById('total-items').textContent = itemsPerSection[currentSection];
         }
 
-                // Navigation clavier
         function setupKeyboardNavigation() {
-            // Remove any existing event listeners to prevent duplicates
-            document.removeEventListener('keydown', handleKeyDown);
             document.addEventListener('keydown', handleKeyDown);
         }
 
@@ -909,7 +874,6 @@
             }
         }
 
-        // Préchargement
         function preloadContent() {
             const images = [
                 'https://picsum.photos/1920/1080?random=1',
@@ -923,285 +887,123 @@
             });
         }
 
-        // Helper function to handle video loading errors
-        function handleVideoError(media, mediaWrapper) {
-            media.classList.add('error');
+        function handleVideoError(video) {
+            const mediaWrapper = video.closest('.media-wrapper');
             updateLoadingState(mediaWrapper, false, true);
-            
-            // Show error message if it exists
-            const errorElement = media.querySelector('.media-error');
-            if (errorElement) {
-                errorElement.style.display = 'block';
-            }
-            
-            console.error('Error loading video:', media.getAttribute('data-src'));
+            console.error('Error loading video:', video.getAttribute('data-src'));
         }
         
-        // Helper function to update loading state
+        function handleVideoLoaded(video) {
+            const mediaWrapper = video.closest('.media-wrapper');
+            updateLoadingState(mediaWrapper, false, false);
+            video.classList.add('loaded');
+            video.style.opacity = '1';
+
+            if (video.closest('.item.active')) {
+                const playPromise = video.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.log('Autoplay prevented, showing controls');
+                        const playOverlay = document.createElement('div');
+                        playOverlay.className = 'play-overlay';
+                        playOverlay.innerHTML = '▶';
+                        playOverlay.style.cssText = 'position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:48px; color:white; background:rgba(0,0,0,0.5); width:80px; height:80px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:5;';
+                        playOverlay.onclick = () => {
+                            video.play().then(() => playOverlay.style.display = 'none').catch(e => console.error('Playback failed:', e));
+                        };
+                        mediaWrapper.appendChild(playOverlay);
+                    });
+                }
+            }
+        }
+
         function updateLoadingState(mediaWrapper, isLoading, isError = false) {
             if (!mediaWrapper) return;
             
             const loadingIndicator = mediaWrapper.querySelector('.media-loading');
+            const errorElement = mediaWrapper.querySelector('.media-error');
+
             if (loadingIndicator) {
                 loadingIndicator.style.display = isLoading ? 'flex' : 'none';
             }
-            
-
-    // Animation entrée nouvelle section
-    setTimeout(() => {
-        sections[newSection].classList.add('active');
-        sections[newSection].classList.remove('prev');
-        menuItems[newSection].classList.add('active');
-        
-        currentSection = newSection;
-        updateCounters();
-        activateCurrentItem();
-    }, 100);
-
-// Gestion du lazy loading pour les images et vidéos
-function initializeLazyLoading() {
-    // Handle lazy-loaded images
-    const lazyImages = document.querySelectorAll('img.lazy-load');
-    
-    // Handle lazy-loaded videos
-    const lazyVideos = document.querySelectorAll('video.lazy');
-    
-    if ('IntersectionObserver' in window) {
-        // Image observer
-        const lazyImageObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const img = entry.target;
-                    const src = img.getAttribute('data-src');
-                    const mediaWrapper = img.closest('.media-wrapper');
-                    
-                    if (src) {
-                        // Show loading indicator
-                        if (mediaWrapper) {
-                            const loadingIndicator = mediaWrapper.querySelector('.media-loading');
-                            const errorElement = mediaWrapper.querySelector('.media-error');
-                            
-                            if (loadingIndicator) loadingIndicator.style.display = 'flex';
-                            if (errorElement) errorElement.style.display = 'none';
-                        }
-                        
-                        // Load the image
-                        img.src = src;
-                        img.classList.add('loaded');
-                        
-                        // Hide loading indicator when image is loaded
-                        img.onload = () => {
-                            if (mediaWrapper) {
-                                const loadingIndicator = mediaWrapper.querySelector('.media-loading');
-                                if (loadingIndicator) loadingIndicator.style.display = 'none';
-                            }
-                        };
-                        
-                        // Handle image loading errors
-                        img.onerror = () => {
-                            if (mediaWrapper) {
-                                const loadingIndicator = mediaWrapper.querySelector('.media-loading');
-                                const errorElement = mediaWrapper.querySelector('.media-error');
-                                
-                                if (loadingIndicator) loadingIndicator.style.display = 'none';
-                                if (errorElement) errorElement.style.display = 'block';
-                                
-                                console.error('Error loading image:', src);
-                            }
-                        };
-                        
-                        observer.unobserve(img);
-                    }
-                }
-            });
-        }, {
-            rootMargin: '200px',
-            threshold: 0.01
-        });
-        
-        // Video observer
-        const lazyVideoObserver = new IntersectionObserver((entries, observer) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const video = entry.target;
-                    const src = video.getAttribute('data-src');
-                    const mediaWrapper = video.closest('.media-wrapper');
-                    
-                    if (src && !video.src) {
-                        // Show loading indicator
-                        if (mediaWrapper) {
-                            const loadingIndicator = mediaWrapper.querySelector('.media-loading');
-                            const errorElement = mediaWrapper.querySelector('.media-error');
-                            
-                            if (loadingIndicator) loadingIndicator.style.display = 'flex';
-                            if (errorElement) errorElement.style.display = 'none';
-                        }
-                        
-                        // Set video source and load
-                        video.src = src;
-                        video.load();
-                        
-                        observer.unobserve(video);
-                    }
-                }
-            });
-        }, {
-            rootMargin: '200px',
-            threshold: 0.01
-        });
-        
-        // Observe all lazy-loaded images and videos
-        lazyImages.forEach(img => lazyImageObserver.observe(img));
-        lazyVideos.forEach(video => lazyVideoObserver.observe(video));
-        
-        // Cleanup function
-        return () => {
-            lazyImageObserver.disconnect();
-            lazyVideoObserver.disconnect();
-        };
-    } else {
-        // Fallback for browsers without IntersectionObserver
-        console.warn('IntersectionObserver not supported, loading all media immediately');
-        
-        const loadAllMedia = (elements, isVideo = false) => {
-            elements.forEach(element => {
-                const src = element.getAttribute('data-src');
-                const mediaWrapper = element.closest('.media-wrapper');
-                
-                if (src) {
-                    // Show loading indicator
-                    if (mediaWrapper) {
-                        const loadingIndicator = mediaWrapper.querySelector('.media-loading');
-                        if (loadingIndicator) loadingIndicator.style.display = 'flex';
-                    }
-                    
-                    // Load the media
-                    if (isVideo) {
-                        element.src = src;
-                        element.load();
-                    } else {
-                        element.src = src;
-                        element.classList.add('loaded');
-                        
-                        element.onload = () => {
-                            if (mediaWrapper) {
-                                const loadingIndicator = mediaWrapper.querySelector('.media-loading');
-                                if (loadingIndicator) loadingIndicator.style.display = 'none';
-                            }
-                        };
-                    }
-                }
-            });
-        };
-        
-        loadAllMedia(lazyImages);
-        loadAllMedia(lazyVideos, true);
-    }
-    // Clean up any existing retry button handlers
-    document.querySelectorAll('.retry-button').forEach(button => {
-        button.onclick = function() {
-            const mediaWrapper = this.closest('.media-wrapper');
-            if (!mediaWrapper) return;
-            
-            const video = mediaWrapper.querySelector('video');
-            const loadingIndicator = mediaWrapper.querySelector('.media-loading');
-            const errorElement = mediaWrapper.querySelector('.media-error');
-            
-            if (video) {
-                // Show loading state
-                if (loadingIndicator) loadingIndicator.style.display = 'flex';
-                if (errorElement) errorElement.style.display = 'none';
-                
-                // Reset and reload the video
-                video.load();
-                
-                // Re-enable autoplay for the video
-                const playPromise = video.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch(error => {
-                        console.log('Autoplay prevented after retry');
-                        video.controls = true;
-                    });
-                }
+            if (errorElement) {
+                errorElement.style.display = isError ? 'block' : 'none';
             }
-        };
-    });
+        }
 
-    // Helper functions for video state
-    function getNetworkStateText(state) {
-        const states = ['NETWORK_EMPTY', 'NETWORK_IDLE', 'NETWORK_LOADING', 'NETWORK_NO_SOURCE'];
-        return states[state] || state;
-    }
-
-    function getReadyStateText(state) {
-        const states = ['HAVE_NOTHING', 'HAVE_METADATA', 'HAVE_CURRENT_DATA', 'HAVE_FUTURE_DATA', 'HAVE_ENOUGH_DATA'];
-        return states[state] || state;
-    }
-
-// Gestion du chargement réussi des vidéos
-window.handleVideoLoaded = function(video) {
-    console.log('Vidéo chargée avec succès:', video);
-    const mediaWrapper = video.closest('.video-wrapper') || video.closest('.media-wrapper');
-    
-    if (mediaWrapper) {
-        updateLoadingState(mediaWrapper, false);
-        video.classList.add('loaded');
-        video.style.opacity = '1';
-        
-        // For the first video, try to autoplay
-        if (video.parentElement.closest('.item.active')) {
-            const playPromise = video.play();
+        function initializeLazyLoading() {
+            const lazyMedia = document.querySelectorAll('img.lazy-load, video.lazy');
             
-            if (playPromise !== undefined) {
-                playPromise.catch(error => {
-                    console.log('Autoplay prevented, showing controls');
-                    video.controls = true;
-                    
-                    // Add play button overlay if autoplay fails
-                    const playOverlay = document.createElement('div');
-                    playOverlay.className = 'play-overlay';
-                    playOverlay.innerHTML = '▶';
-                    playOverlay.style.cssText = 'position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:48px; color:white; background:rgba(0,0,0,0.5); width:80px; height:80px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:5;';
-                    playOverlay.onclick = () => {
-                        video.play()
-                            .then(() => playOverlay.style.display = 'none')
-                            .catch(e => console.error('Playback failed:', e));
-                    };
-                    mediaWrapper.appendChild(playOverlay);
+            if ('IntersectionObserver' in window) {
+                const lazyMediaObserver = new IntersectionObserver((entries, observer) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const media = entry.target;
+                            const src = media.getAttribute('data-src');
+                            const mediaWrapper = media.closest('.media-wrapper');
+                            
+                            if (src) {
+                                updateLoadingState(mediaWrapper, true, false);
+                                media.src = src;
+                                if (media.tagName === 'VIDEO') {
+                                    media.load();
+                                } else {
+                                    media.onload = () => {
+                                        updateLoadingState(mediaWrapper, false, false);
+                                        media.classList.add('loaded');
+                                    };
+                                    media.onerror = () => {
+                                        updateLoadingState(mediaWrapper, false, true);
+                                        console.error('Error loading image:', src);
+                                    };
+                                }
+                                observer.unobserve(media);
+                            }
+                        }
+                    });
+                }, {
+                    rootMargin: '200px',
+                    threshold: 0.01
+                });
+                
+                lazyMedia.forEach(media => lazyMediaObserver.observe(media));
+            } else {
+                console.warn('IntersectionObserver not supported, loading all media immediately');
+                lazyMedia.forEach(media => {
+                    const src = media.getAttribute('data-src');
+                    if (src) {
+                        media.src = src;
+                    }
                 });
             }
         }
-    }
-};
 
-        // Initialisation
+        function handleResize() {
+            if (window.innerWidth <= 768) {
+                cursor.style.display = 'none';
+            } else {
+                cursor.style.display = 'block';
+                initCursor();
+            }
+        }
+
         function init() {
             console.log('Initializing application...');
             const preloader = document.querySelector('.preloader');
             
-            // Initialize cursor and menu first
             initCursor();
             initGhostMenu();
             setupKeyboardNavigation();
             
-            // Load portfolio data
             loadPortfolioData().then(() => {
                 console.log('Portfolio data loaded successfully');
-                // Set initialized flag
                 isInitialized = true;
-                
-                // Hide preloader after everything is ready
                 if (preloader) {
                     preloader.classList.add('hidden');
                 }
-                
-                // Update counters
                 updateCounters();
-                
-                // Preload content
                 preloadContent();
-                
-                // Log for debugging
+                activateCurrentItem();
                 console.log('Application initialized successfully');
             }).catch(error => {
                 console.error('Error during initialization:', error);
@@ -1212,22 +1014,12 @@ window.handleVideoLoaded = function(video) {
             });
         }
 
-        // Responsive
-        function handleResize() {
-            if (window.innerWidth <= 768) {
-                cursor.style.display = 'none';
-            } else {
-                cursor.style.display = 'block';
-                initCursor();
-            }
-        }
-
         // Event listeners
-        document.addEventListener('DOMContentLoaded', () => {
-            setTimeout(init, 800);
-        });
-
         window.addEventListener('resize', handleResize);
+
+        // Start initialization
+        setTimeout(init, 800);
+    });
     </script>
 </body>
 </html>
