@@ -528,10 +528,17 @@
     let currentSection = 0;
     let currentItems = [0, 0];
     const totalSections = 2;
-        let itemsPerSection = [0, 0];
+    let itemsPerSection = [0, 0];
+    let isInitialized = false;
+    
+    // Initialize the application when the DOM is fully loaded
+    document.addEventListener('DOMContentLoaded', () => {
+        init();
+    });
 
         // Dynamic portfolio loading with error handling
         async function loadPortfolioData() {
+            console.log('Loading portfolio data...');
             const loadingIndicator = document.createElement('div');
             loadingIndicator.className = 'loading-indicator';
             loadingIndicator.textContent = 'Chargement du portfolio...';
@@ -570,7 +577,7 @@
                 
                 // Supprimer l'indicateur de chargement
                 loadingIndicator.remove();
-                
+                return Promise.resolve();
             } catch (error) {
                 console.error('Erreur lors du chargement du portfolio:', error);
                 loadingIndicator.textContent = 'Erreur de chargement. Veuillez réessayer plus tard.';
@@ -580,6 +587,7 @@
                 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
                     console.error('Détails de l\'erreur:', error);
                 }
+                return Promise.reject(error);
             }
         }
 
@@ -602,59 +610,29 @@
             
             videos.forEach((video, index) => {
                 const item = document.createElement('div');
-                item.className = `item${index === 0 ? ' active' : ''}`;
-                item.dataset.item = index;
-                item.setAttribute('role', 'article');
-                item.setAttribute('aria-label', `Vidéo: ${video.title}`);
-                
-                let mediaElement = '';
-                
-                if (video.type === 'video') {
-                    mediaElement = `
-                        <div class="video-container">
-                            <div class="video-wrapper">
-                                <video class="media" 
-                                       ${index === 0 ? 'autoplay' : 'preload="metadata"'} 
-                                       muted 
-                                       loop 
-                                       playsinline 
-                                       crossorigin="anonymous"
-                                       aria-label="${video.title}"
-                                       onerror="handleVideoError(this, this.closest('.video-wrapper'))"
-                                       onloadeddata="handleVideoLoaded(this)">
-                                    <source src="${video.media}" type="video/mp4">
-                                    Votre navigateur ne supporte pas la lecture de vidéos HTML5.
-                                </video>
-                                <div class="media-loading" style="display: ${index === 0 ? 'flex' : 'none'};">
-                                    <div class="spinner"></div>
-                                    <div class="loading-text">Chargement...</div>
-                                </div>
-                                <div class="media-error" style="display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; text-align: center; background: rgba(0,0,0,0.9); padding: 20px; border-radius: 8px; z-index: 10; max-width: 90%;">
-                                    Erreur de chargement de la vidéo<br>
-                                    <small><a href="${video.media}" target="_blank" style="color: #4dabf7;" class="open-tab">Ouvrir la vidéo dans un nouvel onglet</a></small>
-                                    <div class="retry-button" style="margin-top: 10px;">
-                                        <button onclick="const video = this.closest('.video-wrapper').querySelector('video'); video.load(); this.disabled = true; this.textContent = 'Chargement...'" style="background: #4dabf7; color: white; border: none; padding: 5px 15px; border-radius: 3px; cursor: pointer;">
-                                            Réessayer
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>`;
-                } else {
-                    mediaElement = `
-                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" 
-                             data-src="${video.media}" 
-                             alt="${video.description || video.title}" 
-                             class="media parallax-element lazy-load" 
-                             loading="lazy"
-                             onerror="this.onerror=null; this.src='data:image/svg+xml;charset=UTF-8,%3Csvg%20width%3D%22800%22%20height%3D%22600%22%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%20800%20600%22%20preserveAspectRatio%3D%22none%22%3E%3Cdefs%3E%3Cstyle%20type%3D%22text%2Fcss%22%3E%23holder_18945b1b2c6%20text%20%7B%20fill%3A%23AAAAAA%3Bfont-weight%3Abold%3Bfont-family%3AArial%2C%20Helvetica%2C%20Open%20Sans%2C%20sans-serif%2C%20monospace%3Bfont-size%3A40pt%20%7D%20%3C%2Fstyle%3E%3C%2Fdefs%3E%3Cg%20id%3D%22holder_18945b1b2c6%22%3E%3Crect%20width%3D%22800%22%20height%3D%22600%22%20fill%3D%22%23EEEEEE%22%3E%3C%2Frect%3E%3Cg%3E%3Ctext%20x%3D%22277%22%20y%3D%22329%22%3EImage%20non%20chargée%3C%2Ftext%3E%3C%2Fg%3E%3C%2Fg%3E%3C%2Fsvg%3E';">`;
-                }
+                item.className = 'media-item';
+                item.dataset.index = index;
                 
                 item.innerHTML = `
                     <div class="media-wrapper">
-                        ${mediaElement}
+                        <video class="lazy" data-src="${video.media}" loop muted playsinline
+                            onerror="handleVideoError(this, this.closest('.media-wrapper'))"
+                            onloadeddata="handleVideoLoaded(this)">
+                        </video>
                         <div class="media-loading">
                             <div class="spinner"></div>
+                            <div class="loading-text">Chargement...</div>
+                        </div>
+                        <div class="media-error" style="display: none;">
+                            Erreur de chargement de la vidéo
+                            <div style="margin-top: 10px;">
+                                <a href="${video.media}" target="_blank" style="color: #4dabf7; display: block; margin-bottom: 10px;">
+                                    Ouvrir la vidéo dans un nouvel onglet
+                                </a>
+                                <button class="retry-button" style="background: #4dabf7; color: white; border: none; padding: 5px 15px; border-radius: 3px; cursor: pointer;">
+                                    Réessayer
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <div class="item-info">
@@ -662,7 +640,28 @@
                         <p class="item-desc">${video.description}</p>
                     </div>
                 `;
-                
+
+                // Add event listener for the retry button
+                const retryButton = item.querySelector('.retry-button');
+                if (retryButton) {
+                    retryButton.addEventListener('click', function() {
+                        const videoElement = this.closest('.media-wrapper').querySelector('video');
+                        const loadingElement = this.closest('.media-wrapper').querySelector('.media-loading');
+                        const errorElement = this.closest('.media-wrapper').querySelector('.media-error');
+                        
+                        if (videoElement) {
+                            // Show loading state
+                            loadingElement.style.display = 'flex';
+                            errorElement.style.display = 'none';
+                            this.disabled = true;
+                            this.textContent = 'Chargement...';
+                            
+                            // Reset and reload the video
+                            videoElement.load();
+                        }
+                    });
+                }
+
                 videoSection.appendChild(item);
             });
             
@@ -881,27 +880,33 @@
 
                 // Navigation clavier
         function setupKeyboardNavigation() {
-            document.addEventListener('keydown', (e) => {
-                switch(e.key) {
-                    case 'ArrowUp':
-                        e.preventDefault();
-                        changeSection(currentSection - 1);
-                        break;
-                    case 'ArrowDown':
-                        e.preventDefault();
-                        changeSection(currentSection + 1);
-                        break;
-                    case 'ArrowLeft':
-                        e.preventDefault();
-                        changeItem('prev');
-                        break;
-                    case 'ArrowRight':
-                    case ' ':
-                        e.preventDefault();
-                        changeItem('next');
-                        break;
-                }
-            });
+            // Remove any existing event listeners to prevent duplicates
+            document.removeEventListener('keydown', handleKeyDown);
+            document.addEventListener('keydown', handleKeyDown);
+        }
+
+        function handleKeyDown(e) {
+            if (!isInitialized) return;
+            
+            switch(e.key) {
+                case 'ArrowUp':
+                    e.preventDefault();
+                    changeSection(currentSection - 1);
+                    break;
+                case 'ArrowDown':
+                    e.preventDefault();
+                    changeSection(currentSection + 1);
+                    break;
+                case 'ArrowLeft':
+                    e.preventDefault();
+                    changeItem('prev');
+                    break;
+                case 'ArrowRight':
+                case ' ':
+                    e.preventDefault();
+                    changeItem('next');
+                    break;
+            }
         }
 
         // Préchargement
@@ -953,11 +958,16 @@
         activateCurrentItem();
     }, 100);
 
-// Gestion du lazy loading pour les images uniquement
+// Gestion du lazy loading pour les images et vidéos
 function initializeLazyLoading() {
+    // Handle lazy-loaded images
     const lazyImages = document.querySelectorAll('img.lazy-load');
     
+    // Handle lazy-loaded videos
+    const lazyVideos = document.querySelectorAll('video.lazy');
+    
     if ('IntersectionObserver' in window) {
+        // Image observer
         const lazyImageObserver = new IntersectionObserver((entries, observer) => {
             entries.forEach(entry => {
                 if (entry.isIntersecting) {
@@ -966,134 +976,158 @@ function initializeLazyLoading() {
                     const mediaWrapper = img.closest('.media-wrapper');
                     
                     if (src) {
-                        // Afficher l'indicateur de chargement
+                        // Show loading indicator
                         if (mediaWrapper) {
                             const loadingIndicator = mediaWrapper.querySelector('.media-loading');
-                            if (loadingIndicator) {
-                                loadingIndicator.style.display = 'flex';
-                            }
+                            const errorElement = mediaWrapper.querySelector('.media-error');
+                            
+                            if (loadingIndicator) loadingIndicator.style.display = 'flex';
+                            if (errorElement) errorElement.style.display = 'none';
                         }
                         
-                        // Charger l'image
+                        // Load the image
                         img.src = src;
                         img.classList.add('loaded');
                         
-                        // Cacher l'indicateur de chargement une fois l'image chargée
+                        // Hide loading indicator when image is loaded
                         img.onload = () => {
                             if (mediaWrapper) {
                                 const loadingIndicator = mediaWrapper.querySelector('.media-loading');
-                                if (loadingIndicator) {
-                                    loadingIndicator.style.display = 'none';
-                                }
+                                if (loadingIndicator) loadingIndicator.style.display = 'none';
                             }
-
-    // Add retry button
-    const retryButton = document.createElement('button');
-    retryButton.textContent = 'Réessayer';
-    retryButton.style.cssText = `
-        margin-top: 15px;
-        padding: 8px 16px;
-        background-color: #4CAF50;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        font-size: 14px;
-        transition: background-color 0.3s;
-    `;
-
-    // Hover effect for button
-    retryButton.onmouseover = () => retryButton.style.backgroundColor = '#45a049';
-    retryButton.onmouseout = () => retryButton.style.backgroundColor = '#4CAF50';
-
-    retryButton.onclick = function() {
-        errorElement.style.display = 'none';
-        updateLoadingState(wrapper, true);
-
-        // Reset video source to force reload
-        if (source && source.src) {
-            // Force a new request by adding a timestamp
-            const separator = source.src.includes('?') ? '&' : '?';
-            source.src = source.src.split('?')[0] + separator + 't=' + Date.now();
-
-            // Remove all event listeners to prevent duplicates
-            const newVideo = video.cloneNode(true);
-            video.parentNode.replaceChild(newVideo, video);
-
-            // Load and play the new video
-            newVideo.load();
-            const playPromise = newVideo.play();
-
-            if (playPromise !== undefined) {
-                playPromise.catch(e => {
-                    console.log('Autoplay after retry prevented, showing controls');
-                    newVideo.controls = true;
-                });
-            }
-        }
-    };
-
-    // Add open in new tab button
-    const openButton = document.createElement('a');
-    openButton.href = videoUrl;
-    openButton.target = '_blank';
-    openButton.rel = 'noopener noreferrer';
-    openButton.textContent = 'Ouvrir dans un nouvel onglet';
-    openButton.style.cssText = `
-        margin-top: 10px;
-        color: #4CAF50;
-        text-decoration: none;
-        font-size: 14px;
-        display: inline-block;
-        padding: 5px 10px;
-        border: 1px solid #4CAF50;
-        border-radius: 4px;
-        transition: all 0.3s;
-    `;
-
-    // Hover effect for open button
-    openButton.onmouseover = () => {
-        openButton.style.backgroundColor = '#4CAF50';
-        openButton.style.color = 'white';
-    };
-    openButton.onmouseout = () => {
-        openButton.style.backgroundColor = 'transparent';
-        openButton.style.color = '#4CAF50';
-    };
-
-    // Create error content
-    const errorContent = document.createElement('div');
-    errorContent.style.maxWidth = '80%';
-
-    const errorTitleEl = document.createElement('div');
-    errorTitleEl.textContent = errorTitle;
-    errorTitleEl.style.cssText = 'font-size: 1.2em; font-weight: bold; margin-bottom: 10px;';
-
-    const errorTextEl = document.createElement('div');
-    errorTextEl.textContent = errorDetailsText;
-    errorTextEl.style.marginBottom = '15px';
-
-    // Add elements to error content
-    errorContent.appendChild(errorTitleEl);
-    errorContent.appendChild(errorTextEl);
-
-    // Clear previous content and add new content
-    errorElement.innerHTML = '';
-    errorElement.appendChild(errorContent);
-
-    // Only show retry button for recoverable errors
-    if (showRetry) {
-        errorElement.appendChild(retryButton);
-        errorElement.appendChild(document.createElement('br'));
-        errorElement.appendChild(document.createElement('br'));
+                        };
+                        
+                        // Handle image loading errors
+                        img.onerror = () => {
+                            if (mediaWrapper) {
+                                const loadingIndicator = mediaWrapper.querySelector('.media-loading');
+                                const errorElement = mediaWrapper.querySelector('.media-error');
+                                
+                                if (loadingIndicator) loadingIndicator.style.display = 'none';
+                                if (errorElement) errorElement.style.display = 'block';
+                                
+                                console.error('Error loading image:', src);
+                            }
+                        };
+                        
+                        observer.unobserve(img);
+                    }
+                }
+            });
+        }, {
+            rootMargin: '200px',
+            threshold: 0.01
+        });
+        
+        // Video observer
+        const lazyVideoObserver = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const video = entry.target;
+                    const src = video.getAttribute('data-src');
+                    const mediaWrapper = video.closest('.media-wrapper');
+                    
+                    if (src && !video.src) {
+                        // Show loading indicator
+                        if (mediaWrapper) {
+                            const loadingIndicator = mediaWrapper.querySelector('.media-loading');
+                            const errorElement = mediaWrapper.querySelector('.media-error');
+                            
+                            if (loadingIndicator) loadingIndicator.style.display = 'flex';
+                            if (errorElement) errorElement.style.display = 'none';
+                        }
+                        
+                        // Set video source and load
+                        video.src = src;
+                        video.load();
+                        
+                        observer.unobserve(video);
+                    }
+                }
+            });
+        }, {
+            rootMargin: '200px',
+            threshold: 0.01
+        });
+        
+        // Observe all lazy-loaded images and videos
+        lazyImages.forEach(img => lazyImageObserver.observe(img));
+        lazyVideos.forEach(video => lazyVideoObserver.observe(video));
+        
+        // Cleanup function
+        return () => {
+            lazyImageObserver.disconnect();
+            lazyVideoObserver.disconnect();
+        };
+    } else {
+        // Fallback for browsers without IntersectionObserver
+        console.warn('IntersectionObserver not supported, loading all media immediately');
+        
+        const loadAllMedia = (elements, isVideo = false) => {
+            elements.forEach(element => {
+                const src = element.getAttribute('data-src');
+                const mediaWrapper = element.closest('.media-wrapper');
+                
+                if (src) {
+                    // Show loading indicator
+                    if (mediaWrapper) {
+                        const loadingIndicator = mediaWrapper.querySelector('.media-loading');
+                        if (loadingIndicator) loadingIndicator.style.display = 'flex';
+                    }
+                    
+                    // Load the media
+                    if (isVideo) {
+                        element.src = src;
+                        element.load();
+                    } else {
+                        element.src = src;
+                        element.classList.add('loaded');
+                        
+                        element.onload = () => {
+                            if (mediaWrapper) {
+                                const loadingIndicator = mediaWrapper.querySelector('.media-loading');
+                                if (loadingIndicator) loadingIndicator.style.display = 'none';
+                            }
+                        };
+                    }
+                }
+            });
+        };
+        
+        loadAllMedia(lazyImages);
+        loadAllMedia(lazyVideos, true);
     }
+    // Clean up any existing retry button handlers
+    document.querySelectorAll('.retry-button').forEach(button => {
+        button.onclick = function() {
+            const mediaWrapper = this.closest('.media-wrapper');
+            if (!mediaWrapper) return;
+            
+            const video = mediaWrapper.querySelector('video');
+            const loadingIndicator = mediaWrapper.querySelector('.media-loading');
+            const errorElement = mediaWrapper.querySelector('.media-error');
+            
+            if (video) {
+                // Show loading state
+                if (loadingIndicator) loadingIndicator.style.display = 'flex';
+                if (errorElement) errorElement.style.display = 'none';
+                
+                // Reset and reload the video
+                video.load();
+                
+                // Re-enable autoplay for the video
+                const playPromise = video.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.log('Autoplay prevented after retry');
+                        video.controls = true;
+                    });
+                }
+            }
+        };
+    });
 
-    // Always show open in new tab option
-    errorElement.appendChild(openButton);
-
-    // Hide loading indicator
-    updateLoadingState(wrapper, false);
-
+    // Helper functions for video state
     function getNetworkStateText(state) {
         const states = ['NETWORK_EMPTY', 'NETWORK_IDLE', 'NETWORK_LOADING', 'NETWORK_NO_SOURCE'];
         return states[state] || state;
@@ -1103,7 +1137,6 @@ function initializeLazyLoading() {
         const states = ['HAVE_NOTHING', 'HAVE_METADATA', 'HAVE_CURRENT_DATA', 'HAVE_FUTURE_DATA', 'HAVE_ENOUGH_DATA'];
         return states[state] || state;
     }
-}
 
 // Gestion du chargement réussi des vidéos
 window.handleVideoLoaded = function(video) {
@@ -1143,16 +1176,40 @@ window.handleVideoLoaded = function(video) {
 
         // Initialisation
         function init() {
+            console.log('Initializing application...');
             const preloader = document.querySelector('.preloader');
-            if (preloader) {
-                preloader.classList.add('hidden');
-            }
-            // Chargement du portfolio et initialisation
-            loadPortfolioData();
+            
+            // Initialize cursor and menu first
             initCursor();
             initGhostMenu();
-            preloadContent();
-            setupKeyboardNavigation(); // Initialize keyboard navigation
+            setupKeyboardNavigation();
+            
+            // Load portfolio data
+            loadPortfolioData().then(() => {
+                console.log('Portfolio data loaded successfully');
+                // Set initialized flag
+                isInitialized = true;
+                
+                // Hide preloader after everything is ready
+                if (preloader) {
+                    preloader.classList.add('hidden');
+                }
+                
+                // Update counters
+                updateCounters();
+                
+                // Preload content
+                preloadContent();
+                
+                // Log for debugging
+                console.log('Application initialized successfully');
+            }).catch(error => {
+                console.error('Error during initialization:', error);
+                if (preloader) {
+                    preloader.textContent = 'Error loading portfolio. Please refresh the page.';
+                    preloader.className = 'error-message';
+                }
+            });
         }
 
         // Responsive
@@ -1166,7 +1223,7 @@ window.handleVideoLoaded = function(video) {
         }
 
         // Event listeners
-        window.addEventListener('load', () => {
+        document.addEventListener('DOMContentLoaded', () => {
             setTimeout(init, 800);
         });
 
