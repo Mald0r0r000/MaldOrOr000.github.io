@@ -525,7 +525,7 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
-        // Variables globales
+        // Global variables
         let currentSection = 0;
         let currentItems = [0, 0];
         const totalSections = 2;
@@ -549,12 +549,12 @@
             try {
                 const response = await fetch('/data/portfolio.json');
                 if (!response.ok) {
-                    throw new Error(`Erreur HTTP: ${response.status}`);
+                    throw new Error(`HTTP Error: ${response.status}`);
                 }
                 const data = await response.json();
                 
                 if (!data.videos || !data.photos) {
-                    throw new Error('Format de données invalide');
+                    throw new Error('Invalid data format');
                 }
 
                 const videos = data.videos
@@ -566,7 +566,7 @@
                     .sort((a, b) => (a.order || 0) - (b.order || 0));
 
                 if (videos.length === 0 && photos.length === 0) {
-                    throw new Error('Aucun contenu actif trouvé');
+                    throw new Error('No active content found');
                 }
 
                 generateVideoSection(videos);
@@ -581,12 +581,12 @@
                 loadingIndicator.remove();
                 return Promise.resolve();
             } catch (error) {
-                console.error('Erreur lors du chargement du portfolio:', error);
-                loadingIndicator.textContent = 'Erreur de chargement. Veuillez réessayer plus tard.';
+                console.error('Error loading portfolio:', error);
+                loadingIndicator.textContent = 'Loading error. Please try again later.';
                 loadingIndicator.className = 'error-message';
                 
                 if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                    console.error('Détails de l\'erreur:', error);
+                    console.error('Error details:', error);
                 }
                 return Promise.reject(error);
             }
@@ -595,7 +595,7 @@
         function generateVideoSection(videos) {
             const videoSection = document.querySelector('.section[data-section="0"] .section-container');
             if (!videoSection) {
-                console.error('Section vidéo introuvable dans le DOM');
+                console.error('Video section not found in DOM');
                 return;
             }
             
@@ -604,34 +604,21 @@
             if (!videos || videos.length === 0) {
                 const emptyMessage = document.createElement('div');
                 emptyMessage.className = 'empty-message';
-                emptyMessage.textContent = 'Aucune vidéo disponible pour le moment';
+                emptyMessage.textContent = 'No videos available at the moment';
                 videoSection.appendChild(emptyMessage);
                 return;
             }
             
             videos.forEach((video, index) => {
                 const item = document.createElement('div');
-                item.className = 'media-item item'; // Added 'item' class for consistency
-                item.dataset.index = index;
-                item.dataset.item = index; // Added for consistency with photo section
+                item.className = 'item';
+                item.dataset.item = index;
                 
                 item.innerHTML = `
                     <div class="media-wrapper">
-                        <video class="lazy" data-src="${video.media}" loop muted playsinline></video>
+                        <video class="media lazy" data-src="${video.media}" loop muted playsinline></video>
                         <div class="media-loading">
                             <div class="spinner"></div>
-                            <div class="loading-text">Chargement...</div>
-                        </div>
-                        <div class="media-error" style="display: none;">
-                            Erreur de chargement de la vidéo
-                            <div style="margin-top: 10px;">
-                                <a href="${video.media}" target="_blank" style="color: #4dabf7; display: block; margin-bottom: 10px;">
-                                    Ouvrir la vidéo dans un nouvel onglet
-                                </a>
-                                <button class="retry-button" style="background: #4dabf7; color: white; border: none; padding: 5px 15px; border-radius: 3px; cursor: pointer;">
-                                    Réessayer
-                                </button>
-                            </div>
                         </div>
                     </div>
                     <div class="item-info">
@@ -640,22 +627,6 @@
                     </div>
                 `;
 
-                const videoElement = item.querySelector('video');
-                videoElement.addEventListener('error', () => handleVideoError(videoElement));
-                videoElement.addEventListener('loadeddata', () => handleVideoLoaded(videoElement));
-
-                const retryButton = item.querySelector('.retry-button');
-                if (retryButton) {
-                    retryButton.addEventListener('click', () => {
-                        const videoEl = item.querySelector('video');
-                        if (videoEl) {
-                            const mediaWrapper = videoEl.closest('.media-wrapper');
-                            updateLoadingState(mediaWrapper, true, false);
-                            videoEl.load();
-                        }
-                    });
-                }
-
                 videoSection.appendChild(item);
             });
         }
@@ -663,7 +634,7 @@
         function generatePhotoSection(photos) {
             const photoSection = document.querySelector('.section[data-section="1"] .section-container');
             if (!photoSection) {
-                console.error('Section photo introuvable dans le DOM');
+                console.error('Photo section not found in DOM');
                 return;
             }
             
@@ -672,7 +643,7 @@
             if (!photos || photos.length === 0) {
                 const emptyMessage = document.createElement('div');
                 emptyMessage.className = 'empty-message';
-                emptyMessage.textContent = 'Aucune photo disponible pour le moment';
+                emptyMessage.textContent = 'No photos available at the moment';
                 photoSection.appendChild(emptyMessage);
                 return;
             }
@@ -681,18 +652,10 @@
                 const item = document.createElement('div');
                 item.className = 'item';
                 item.dataset.item = index;
-                item.setAttribute('role', 'article');
-                item.setAttribute('aria-label', `Photo: ${photo.title}`);
-                
-                const placeholderSVG = 'data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 1 1\'/%3E%3C/svg%3E';
                 
                 item.innerHTML = `
                     <div class="media-wrapper">
-                        <img src="${placeholderSVG}" 
-                             data-src="${photo.media}" 
-                             alt="${photo.description || photo.title}" 
-                             class="media parallax-element lazy-load" 
-                             loading="lazy">
+                        <img class="media lazy" data-src="${photo.media}" alt="${photo.title}">
                         <div class="media-loading">
                             <div class="spinner"></div>
                         </div>
@@ -702,7 +665,7 @@
                         <p class="item-desc">${photo.description}</p>
                     </div>
                 `;
-                
+
                 photoSection.appendChild(item);
             });
         }
@@ -714,8 +677,7 @@
                     cursor.style.top = e.clientY + 'px';
                 });
 
-                const interactiveElements = document.querySelectorAll('.menu-item, .item');
-                interactiveElements.forEach(el => {
+                document.querySelectorAll('a, .menu-item').forEach(el => {
                     el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
                     el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
                 });
@@ -723,57 +685,32 @@
         }
 
         function initGhostMenu() {
-            let menuTimeout;
-
-            const showMenu = () => {
-                clearTimeout(menuTimeout);
-                ghostMenu.classList.add('visible');
-            };
-
-            const hideMenu = () => {
-                menuTimeout = setTimeout(() => {
-                    ghostMenu.classList.remove('visible');
-                }, 1000);
-            };
-
-            menuTrigger.addEventListener('mouseenter', showMenu);
-            ghostMenu.addEventListener('mouseenter', showMenu);
-            ghostMenu.addEventListener('mouseleave', hideMenu);
-
             document.addEventListener('mousemove', (e) => {
-                if (e.clientY < 50) {
-                    showMenu();
-                } else if (e.clientY > 150) {
-                    hideMenu();
+                if (e.clientY < 80) {
+                    ghostMenu.classList.add('visible');
+                } else {
+                    ghostMenu.classList.remove('visible');
                 }
             });
 
             menuItems.forEach((item, index) => {
-                item.addEventListener('click', () => {
-                    changeSection(index);
-                });
+                item.addEventListener('click', () => changeSection(index));
             });
         }
 
         function changeSection(newSection) {
-            if (newSection < 0 || newSection >= totalSections || newSection === currentSection) return;
+            if (newSection === currentSection || newSection < 0 || newSection >= totalSections) return;
 
             sections[currentSection].classList.remove('active');
+            sections[currentSection].classList.add('prev');
             menuItems[currentSection].classList.remove('active');
-            
-            if (newSection > currentSection) {
-                sections[currentSection].classList.add('prev');
-            } else {
-                sections[currentSection].classList.remove('prev');
-            }
-
-            setTimeout(() => {
-                sections[newSection].classList.add('active');
-                sections[newSection].classList.remove('prev');
-                menuItems[newSection].classList.add('active');
-            }, 100);
 
             currentSection = newSection;
+
+            sections[currentSection].classList.remove('prev');
+            sections[currentSection].classList.add('active');
+            menuItems[currentSection].classList.add('active');
+            
             updateCounters();
             activateCurrentItem();
         }
@@ -783,61 +720,37 @@
             if (totalItems <= 1) return;
 
             const currentItemIndex = currentItems[currentSection];
-            let newItemIndex;
-
-            if (direction === 'next') {
-                newItemIndex = (currentItemIndex + 1) % totalItems;
-            } else {
-                newItemIndex = (currentItemIndex - 1 + totalItems) % totalItems;
-            }
-
             const currentItemEl = sections[currentSection].querySelector(`.item[data-item="${currentItemIndex}"]`);
-            if (currentItemEl) {
-                currentItemEl.classList.remove('active');
-                if (direction === 'next') {
-                    currentItemEl.classList.add('prev');
-                } else {
-                    currentItemEl.classList.remove('prev');
-                }
-            }
-
-            setTimeout(() => {
-                const newItemEl = sections[currentSection].querySelector(`.item[data-item="${newItemIndex}"]`);
-                if (newItemEl) {
-                    newItemEl.classList.add('active');
-                    newItemEl.classList.remove('prev');
-                    addParallaxEffect(newItemEl);
-                }
-            }, 100);
+            
+            let newItemIndex = (direction === 'next')
+                ? (currentItemIndex + 1) % totalItems
+                : (currentItemIndex - 1 + totalItems) % totalItems;
 
             currentItems[currentSection] = newItemIndex;
+
+            const newItemEl = sections[currentSection].querySelector(`.item[data-item="${newItemIndex}"]`);
+
+            if (currentItemEl) {
+                currentItemEl.classList.remove('active');
+                currentItemEl.classList.add('prev');
+            }
+            if (newItemEl) {
+                newItemEl.classList.remove('prev');
+                newItemEl.classList.add('active');
+            }
+            
             updateCounters();
         }
 
         function activateCurrentItem() {
             const items = sections[currentSection].querySelectorAll('.item');
             items.forEach((item, index) => {
-                if (index === currentItems[currentSection]) {
-                    item.classList.add('active');
-                } else {
-                    item.classList.remove('active', 'prev');
+                item.classList.toggle('active', index === currentItems[currentSection]);
+                if (index !== currentItems[currentSection]) {
+                    item.classList.remove('prev');
                 }
             });
-        }
-
-        function addParallaxEffect(element) {
-            const media = element.querySelector('.parallax-element');
-            if (!media) return;
-
-            const randomX = (Math.random() - 0.5) * 20;
-            const randomY = (Math.random() - 0.5) * 15;
-            const randomRotation = (Math.random() - 0.5) * 1;
-
-            media.style.transform = `translate(${randomX}px, ${randomY}px) rotate(${randomRotation}deg) scale(1.02)`;
-            
-            setTimeout(() => {
-                media.style.transform = 'translate(0, 0) rotate(0deg) scale(1)';
-            }, 2000);
+            lazyLoadActiveItem();
         }
 
         function updateCounters() {
@@ -847,178 +760,70 @@
         }
 
         function setupKeyboardNavigation() {
-            document.addEventListener('keydown', handleKeyDown);
-        }
-
-        function handleKeyDown(e) {
-            if (!isInitialized) return;
-            
-            switch(e.key) {
-                case 'ArrowUp':
-                    e.preventDefault();
-                    changeSection(currentSection - 1);
-                    break;
-                case 'ArrowDown':
-                    e.preventDefault();
-                    changeSection(currentSection + 1);
-                    break;
-                case 'ArrowLeft':
-                    e.preventDefault();
-                    changeItem('prev');
-                    break;
-                case 'ArrowRight':
-                case ' ':
-                    e.preventDefault();
-                    changeItem('next');
-                    break;
-            }
-        }
-
-        function preloadContent() {
-            const images = [
-                'https://picsum.photos/1920/1080?random=1',
-                'https://picsum.photos/1920/1080?random=2',
-                'https://picsum.photos/1920/1080?random=3'
-            ];
-            
-            images.forEach(src => {
-                const img = new Image();
-                img.src = src;
+            document.addEventListener('keydown', (e) => {
+                if (!isInitialized) return;
+                switch(e.key) {
+                    case 'ArrowUp': changeSection(currentSection - 1); break;
+                    case 'ArrowDown': changeSection(currentSection + 1); break;
+                    case 'ArrowLeft': changeItem('prev'); break;
+                    case 'ArrowRight': changeItem('next'); break;
+                }
             });
         }
 
-        function handleVideoError(video) {
-            const mediaWrapper = video.closest('.media-wrapper');
-            updateLoadingState(mediaWrapper, false, true);
-            console.error('Error loading video:', video.getAttribute('data-src'));
-        }
-        
-        function handleVideoLoaded(video) {
-            const mediaWrapper = video.closest('.media-wrapper');
-            updateLoadingState(mediaWrapper, false, false);
-            video.classList.add('loaded');
-            video.style.opacity = '1';
+        function lazyLoadActiveItem() {
+            const activeItem = sections[currentSection].querySelector('.item.active .lazy');
+            if (activeItem && activeItem.dataset.src) {
+                const mediaWrapper = activeItem.closest('.media-wrapper');
+                const loadingIndicator = mediaWrapper.querySelector('.media-loading');
+                loadingIndicator.style.display = 'flex';
 
-            if (video.closest('.item.active')) {
-                const playPromise = video.play();
-                if (playPromise !== undefined) {
-                    playPromise.catch(error => {
-                        console.log('Autoplay prevented, showing controls');
-                        const playOverlay = document.createElement('div');
-                        playOverlay.className = 'play-overlay';
-                        playOverlay.innerHTML = '▶';
-                        playOverlay.style.cssText = 'position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:48px; color:white; background:rgba(0,0,0,0.5); width:80px; height:80px; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:5;';
-                        playOverlay.onclick = () => {
-                            video.play().then(() => playOverlay.style.display = 'none').catch(e => console.error('Playback failed:', e));
-                        };
-                        mediaWrapper.appendChild(playOverlay);
-                    });
+                activeItem.src = activeItem.dataset.src;
+                
+                activeItem.onload = () => {
+                    loadingIndicator.style.display = 'none';
+                    activeItem.classList.add('loaded');
+                };
+                activeItem.onerror = () => {
+                    loadingIndicator.style.display = 'none';
+                    console.error(`Failed to load media: ${activeItem.dataset.src}`);
+                };
+
+                if (activeItem.tagName === 'VIDEO') {
+                    activeItem.onloadeddata = () => {
+                        loadingIndicator.style.display = 'none';
+                        activeItem.classList.add('loaded');
+                        activeItem.play().catch(e => console.log('Autoplay was prevented.'));
+                    };
+                    activeItem.load();
                 }
-            }
-        }
-
-        function updateLoadingState(mediaWrapper, isLoading, isError = false) {
-            if (!mediaWrapper) return;
-            
-            const loadingIndicator = mediaWrapper.querySelector('.media-loading');
-            const errorElement = mediaWrapper.querySelector('.media-error');
-
-            if (loadingIndicator) {
-                loadingIndicator.style.display = isLoading ? 'flex' : 'none';
-            }
-            if (errorElement) {
-                errorElement.style.display = isError ? 'block' : 'none';
+                delete activeItem.dataset.src;
             }
         }
 
         function initializeLazyLoading() {
-            const lazyMedia = document.querySelectorAll('img.lazy-load, video.lazy');
-            
-            if ('IntersectionObserver' in window) {
-                const lazyMediaObserver = new IntersectionObserver((entries, observer) => {
-                    entries.forEach(entry => {
-                        if (entry.isIntersecting) {
-                            const media = entry.target;
-                            const src = media.getAttribute('data-src');
-                            const mediaWrapper = media.closest('.media-wrapper');
-                            
-                            if (src) {
-                                updateLoadingState(mediaWrapper, true, false);
-                                media.src = src;
-                                if (media.tagName === 'VIDEO') {
-                                    media.load();
-                                } else {
-                                    media.onload = () => {
-                                        updateLoadingState(mediaWrapper, false, false);
-                                        media.classList.add('loaded');
-                                    };
-                                    media.onerror = () => {
-                                        updateLoadingState(mediaWrapper, false, true);
-                                        console.error('Error loading image:', src);
-                                    };
-                                }
-                                observer.unobserve(media);
-                            }
-                        }
-                    });
-                }, {
-                    rootMargin: '200px',
-                    threshold: 0.01
-                });
-                
-                lazyMedia.forEach(media => lazyMediaObserver.observe(media));
-            } else {
-                console.warn('IntersectionObserver not supported, loading all media immediately');
-                lazyMedia.forEach(media => {
-                    const src = media.getAttribute('data-src');
-                    if (src) {
-                        media.src = src;
-                    }
-                });
-            }
-        }
-
-        function handleResize() {
-            if (window.innerWidth <= 768) {
-                cursor.style.display = 'none';
-            } else {
-                cursor.style.display = 'block';
-                initCursor();
-            }
+            // The new logic loads content on-demand via activateCurrentItem
+            // so this IntersectionObserver is no longer the primary method.
         }
 
         function init() {
-            console.log('Initializing application...');
             const preloader = document.querySelector('.preloader');
-            
             initCursor();
             initGhostMenu();
             setupKeyboardNavigation();
             
             loadPortfolioData().then(() => {
-                console.log('Portfolio data loaded successfully');
-                isInitialized = true;
-                if (preloader) {
-                    preloader.classList.add('hidden');
-                }
-                updateCounters();
-                preloadContent();
                 activateCurrentItem();
-                console.log('Application initialized successfully');
+                isInitialized = true;
+                preloader.classList.add('hidden');
+                console.log('Application initialized.');
             }).catch(error => {
-                console.error('Error during initialization:', error);
-                if (preloader) {
-                    preloader.textContent = 'Error loading portfolio. Please refresh the page.';
-                    preloader.className = 'error-message';
-                }
+                console.error('Initialization failed:', error);
+                preloader.classList.add('hidden');
             });
         }
 
-        // Event listeners
-        window.addEventListener('resize', handleResize);
-
-        // Start initialization
-        setTimeout(init, 800);
+        init();
     });
     </script>
 </body>
