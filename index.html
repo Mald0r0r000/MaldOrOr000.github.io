@@ -655,52 +655,65 @@
             });
         }
 
-        function loadMediaOnDemand(mediaElement) {
-            if (!mediaElement || !mediaElement.dataset.src || mediaElement.src) return;
-
-            logger.info('Attempting to load media on demand...', mediaElement.dataset.src);
-            const loadingIndicator = mediaElement.closest('.item').querySelector('.media-loading');
-            loadingIndicator.style.display = 'flex';
-
-            const src = mediaElement.dataset.src;
-            mediaElement.src = src;
-            delete mediaElement.dataset.src;
-
-            const onLoaded = () => {
-                logger.info('Media loaded successfully.', src);
-                loadingIndicator.style.display = 'none';
-                mediaElement.classList.add('loaded');
-            };
-
-            const onError = () => {
-                logger.error('Error loading media.', src);
-                loadingIndicator.style.display = 'none';
-            };
-
-            if (mediaElement.tagName === 'VIDEO') {
-                mediaElement.addEventListener('loadeddata', onLoaded, { once: true });
-            } else {
-                mediaElement.addEventListener('load', onLoaded, { once: true });
-            }
-            mediaElement.addEventListener('error', onError, { once: true });
-
-            if (mediaElement.tagName === 'VIDEO') {
-                mediaElement.load();
-            }
-        }
 
         function activateCurrentItem() {
-            const activeItemContainer = sections[currentSection].querySelector(`.item[data-item="${currentItems[currentSection]}"]`);
-            if (!activeItemContainer) return;
+            const activeItemContainer = sections[currentSection].querySelector(`.item.active`);
+            if (!activeItemContainer) {
+                // Fallback to find by data-item if .active is not yet set
+                const fallbackItem = sections[currentSection].querySelector(`.item[data-item="${currentItems[currentSection]}"]`);
+                if (!fallbackItem) return;
+                activeItemContainer = fallbackItem;
+            }
 
             const mediaElement = activeItemContainer.querySelector('.media[data-src]');
-            if (!mediaElement) return;
+            
+            // Si l'élément média existe et n'a pas encore de source
+            if (mediaElement && mediaElement.dataset.src) {
+                logger.info('Attempting to load media on demand...', mediaElement.dataset.src);
+                const loadingIndicator = activeItemContainer.querySelector('.media-loading');
+                loadingIndicator.style.display = 'flex';
 
-            loadMediaOnDemand(mediaElement);
+                const src = mediaElement.dataset.src;
+                delete mediaElement.dataset.src;
 
-            if (mediaElement.tagName === 'VIDEO') {
-                const playButton = activeItemContainer.querySelector('.play-button-overlay');
-                if (playButton) playButton.style.display = 'flex';
+                // Gestionnaires d'événements pour toutes les erreurs et succès de chargement
+                const onLoaded = () => {
+                    logger.info('Media loaded successfully.', src);
+                    loadingIndicator.style.display = 'none';
+                    mediaElement.classList.add('loaded');
+                    // Nettoyage des événements
+                    mediaElement.removeEventListener('load', onLoaded);
+                    mediaElement.removeEventListener('loadeddata', onLoaded);
+                    mediaElement.removeEventListener('error', onError);
+                };
+                const onError = () => {
+                    logger.error('Error loading media.', src);
+                    loadingIndicator.style.display = 'none';
+                };
+
+                mediaElement.addEventListener('error', onError, { once: true });
+
+                // Logique spécifique aux types de médias
+                if (mediaElement.tagName === 'VIDEO') {
+                    const playButton = activeItemContainer.querySelector('.play-button-overlay');
+                    if (playButton) playButton.style.display = 'flex';
+                    
+                    mediaElement.addEventListener('loadeddata', onLoaded, { once: true });
+                    
+                    mediaElement.src = src; // Démarre le chargement
+                    mediaElement.load();
+                    
+                } else { // C'est une image
+                    mediaElement.addEventListener('load', onLoaded, { once: true });
+                    mediaElement.src = src; // Démarre le chargement
+                }
+
+            } else {
+                // Si l'élément média n'a pas de data-src (déjà chargé) ou s'il n'existe pas
+                const mediaElementExisting = activeItemContainer.querySelector('.media');
+                if (mediaElementExisting) {
+                    mediaElementExisting.classList.add('loaded');
+                }
             }
         }
 
@@ -746,7 +759,10 @@
             }
             
             updateCounters();
-            activateCurrentItem();
+            // On s'assure que le DOM est à jour avant d'activer
+            requestAnimationFrame(() => {
+                activateCurrentItem();
+            });
         }
 
         function updateCounters() {
