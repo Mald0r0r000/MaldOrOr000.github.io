@@ -29,4 +29,6 @@ Then, open your browser and navigate to `http://localhost:8000`.
   - Resolved an issue where the initial video would not load or display due to incorrect activation logic.
   - Restructured the entire script to improve readability, maintainability, and performance.
   - Ensured all portfolio media (videos and images) load correctly on demand.
+  - Fixed a race condition where the initial item activation failed because the DOM was not ready.
+  - Corrected a critical CSS sizing issue that prevented media from being displayed.
 
