@@ -3,7 +3,7 @@
       {
         "active": true,
         "order": 1,
-        "media": "https://media.antoine-bedos.com/videos/SHOWREEL/SHOWREEL_2025.mp4",
+        "media": "https://media.antoine-bedos.com/VIDEOS/SHOWREEL/SHOWREEL_2025.mp4",
         "type": "video",
         "title": "Showreel 2025",
         "description": "DIRECTION, DOP, EDITING"
@@ -11,7 +11,7 @@
       {
         "active": true,
         "order": 2,
-        "media": "https://media.antoine-bedos.com/videos/INSTA/CAPSULE_01_FINALE_ADDITIONAL-SHOTS(1).mp4",
+        "media": "https://media.antoine-bedos.com/VIDEOS/INSTA/CAPSULE_01_FINALE_ADDITIONAL-SHOTS(1).mp4",
         "type": "video",
         "title": "Juun J",
         "description": "DIRECTION, DOP, EDITING — 2025"
@@ -19,7 +19,7 @@
       {
         "active": true,
         "order": 3,
-        "media": "https://media.antoine-bedos.com/videos/INSTA/CAPSULE_02_FINALE(1).mp4",
+        "media": "https://media.antoine-bedos.com/VIDEOS/INSTA/CAPSULE_02_FINALE(1).mp4",
         "type": "video",
         "title": "Juun J",
         "description": "DIRECTION, DOP, EDITING — 2025"
