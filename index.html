@@ -657,12 +657,14 @@
 
 
         function activateCurrentItem() {
-            const activeItemContainer = sections[currentSection].querySelector(`.item.active`);
+            let activeItemContainer = sections[currentSection].querySelector(`.item.active`);
             if (!activeItemContainer) {
                 // Fallback to find by data-item if .active is not yet set
-                const fallbackItem = sections[currentSection].querySelector(`.item[data-item="${currentItems[currentSection]}"]`);
-                if (!fallbackItem) return;
-                activeItemContainer = fallbackItem;
+                activeItemContainer = sections[currentSection].querySelector(`.item[data-item="${currentItems[currentSection]}"]`);
+                if (!activeItemContainer) {
+                    logger.warn('No active item found in current section.');
+                    return;
+                }
             }
 
             const mediaElement = activeItemContainer.querySelector('.media[data-src]');
