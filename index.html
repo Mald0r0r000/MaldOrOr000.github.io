@@ -557,6 +557,30 @@
 
     <script>
     document.addEventListener('DOMContentLoaded', () => {
+        // Logger personnalisé
+        class Logger {
+            constructor(context = 'APP') {
+                this.context = context;
+                this.logLevel = 'INFO'; // Passer en 'DEBUG' pour plus de détails
+            }
+            debug(message, data = null) {
+                if (this.logLevel === 'DEBUG') {
+                    console.log(`🔍 [${this.context}] ${new Date().toISOString()} - ${message}`, data || '');
+                }
+            }
+            info(message, data = null) {
+                console.info(`ℹ️ [${this.context}] ${new Date().toISOString()} - ${message}`, data || '');
+            }
+            warn(message, data = null) {
+                console.warn(`⚠️ [${this.context}] ${new Date().toISOString()} - ${message}`, data || '');
+            }
+            error(message, error = null) {
+                console.error(`❌ [${this.context}] ${new Date().toISOString()} - ${message}`, error || '');
+            }
+        }
+
+        const logger = new Logger('PORTFOLIO');
+
         // Global variables
         let currentSection = 0;
         let currentItems = [0, 0];
@@ -568,167 +592,116 @@
         const menuItems = document.querySelectorAll('.menu-item');
         const ghostMenu = document.querySelector('.ghost-menu');
         const cursor = document.querySelector('.custom-cursor');
-        const menuTrigger = document.querySelector('.menu-trigger');
 
-        // Dynamic portfolio loading with error handling
+        // Dynamic portfolio loading
         async function loadPortfolioData() {
-            console.log('Loading portfolio data...');
-            const loadingIndicator = document.createElement('div');
-            loadingIndicator.className = 'loading-indicator';
-            loadingIndicator.textContent = 'Chargement du portfolio...';
-            document.body.appendChild(loadingIndicator);
-
+            logger.info('Loading portfolio data...');
             try {
                 const response = await fetch('/data/portfolio.json');
-                if (!response.ok) {
-                    throw new Error(`HTTP Error: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
                 const data = await response.json();
-                
-                if (!data.videos || !data.photos) {
-                    throw new Error('Invalid data format');
-                }
+                if (!data.videos || !data.photos) throw new Error('Invalid data format');
 
-                const videos = data.videos
-                    .filter(item => item?.active)
-                    .sort((a, b) => (a.order || 0) - (b.order || 0));
+                const videos = data.videos.filter(item => item?.active).sort((a, b) => (a.order || 0) - (b.order || 0));
+                const photos = data.photos.filter(item => item?.active).sort((a, b) => (a.order || 0) - (b.order || 0));
 
-                const photos = data.photos
-                    .filter(item => item?.active)
-                    .sort((a, b) => (a.order || 0) - (b.order || 0));
+                if (videos.length === 0 && photos.length === 0) throw new Error('No active content found');
 
-                if (videos.length === 0 && photos.length === 0) {
-                    throw new Error('No active content found');
-                }
-
-                generateVideoSection(videos);
-                generatePhotoSection(photos);
+                generateSection(document.querySelector('.section[data-section="0"] .section-container'), videos, 'video');
+                generateSection(document.querySelector('.section[data-section="1"] .section-container'), photos, 'photo');
 
                 itemsPerSection[0] = videos.length;
                 itemsPerSection[1] = photos.length;
 
                 updateCounters();
-                initializeLazyLoading();
-                
-                loadingIndicator.remove();
                 return Promise.resolve();
             } catch (error) {
-                console.error('Error loading portfolio:', error);
-                loadingIndicator.textContent = 'Loading error. Please try again later.';
-                loadingIndicator.className = 'error-message';
-                
-                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                    console.error('Error details:', error);
-                }
+                logger.error('Error loading portfolio:', error);
                 return Promise.reject(error);
             }
         }
 
-        function generateVideoSection(videos) {
-            const videoSection = document.querySelector('.section[data-section="0"] .section-container');
-            if (!videoSection) {
-                console.error('Video section not found in DOM');
+        function generateSection(container, items, type) {
+            if (!container) {
+                logger.error(`${type} section container not found in DOM`);
                 return;
             }
-            
-            videoSection.innerHTML = '';
-            
-            if (!videos || videos.length === 0) {
-                const emptyMessage = document.createElement('div');
-                emptyMessage.className = 'empty-message';
-                emptyMessage.textContent = 'No videos available at the moment';
-                videoSection.appendChild(emptyMessage);
+            container.innerHTML = '';
+            if (!items || items.length === 0) {
+                container.innerHTML = `<div class="empty-message">No ${type}s available at the moment</div>`;
                 return;
             }
-            
-            videos.forEach((video, index) => {
+            items.forEach((itemData, index) => {
                 const item = document.createElement('div');
                 item.className = 'item';
                 item.dataset.item = index;
-                
+
+                const mediaElement = type === 'video'
+                    ? `<video class="media" data-src="${itemData.media}" loop muted playsinline></video>`
+                    : `<img class="media" data-src="${itemData.media}" alt="${itemData.title}">`;
+
                 item.innerHTML = `
                     <div class="media-wrapper">
-                        <video class="media lazy" data-src="${video.media}" loop muted playsinline></video>
-                        <div class="media-loading">
-                            <div class="spinner"></div>
-                        </div>
-                        <div class="play-button-overlay"></div>
+                        ${mediaElement}
+                        <div class="media-loading"><div class="spinner"></div></div>
+                        ${type === 'video' ? '<div class="play-button-overlay"></div>' : ''}
                     </div>
                     <div class="item-info">
-                        <h2 class="item-title">${video.title}</h2>
-                        <p class="item-desc">${video.description}</p>
+                        <h2 class="item-title">${itemData.title}</h2>
+                        <p class="item-desc">${itemData.description}</p>
                     </div>
                 `;
-
-                videoSection.appendChild(item);
+                container.appendChild(item);
             });
         }
 
-        function generatePhotoSection(photos) {
-            const photoSection = document.querySelector('.section[data-section="1"] .section-container');
-            if (!photoSection) {
-                console.error('Photo section not found in DOM');
-                return;
+        function loadMediaOnDemand(mediaElement) {
+            if (!mediaElement || !mediaElement.dataset.src || mediaElement.src) return;
+
+            logger.info('Attempting to load media on demand...', mediaElement.dataset.src);
+            const loadingIndicator = mediaElement.closest('.item').querySelector('.media-loading');
+            loadingIndicator.style.display = 'flex';
+
+            const src = mediaElement.dataset.src;
+            mediaElement.src = src;
+            delete mediaElement.dataset.src;
+
+            const onLoaded = () => {
+                logger.info('Media loaded successfully.', src);
+                loadingIndicator.style.display = 'none';
+                mediaElement.classList.add('loaded');
+            };
+
+            const onError = () => {
+                logger.error('Error loading media.', src);
+                loadingIndicator.style.display = 'none';
+            };
+
+            if (mediaElement.tagName === 'VIDEO') {
+                mediaElement.addEventListener('loadeddata', onLoaded, { once: true });
+            } else {
+                mediaElement.addEventListener('load', onLoaded, { once: true });
             }
-            
-            photoSection.innerHTML = '';
-            
-            if (!photos || photos.length === 0) {
-                const emptyMessage = document.createElement('div');
-                emptyMessage.className = 'empty-message';
-                emptyMessage.textContent = 'No photos available at the moment';
-                photoSection.appendChild(emptyMessage);
-                return;
-            }
-            
-            photos.forEach((photo, index) => {
-                const item = document.createElement('div');
-                item.className = 'item';
-                item.dataset.item = index;
-                
-                item.innerHTML = `
-                    <div class="media-wrapper">
-                        <img class="media lazy" data-src="${photo.media}" alt="${photo.title}">
-                        <div class="media-loading">
-                            <div class="spinner"></div>
-                        </div>
-                    </div>
-                    <div class="item-info">
-                        <h2 class="item-title">${photo.title}</h2>
-                        <p class="item-desc">${photo.description}</p>
-                    </div>
-                `;
+            mediaElement.addEventListener('error', onError, { once: true });
 
-                photoSection.appendChild(item);
-            });
-        }
-
-        function initCursor() {
-            if (window.innerWidth > 768) {
-                document.addEventListener('mousemove', (e) => {
-                    cursor.style.left = e.clientX + 'px';
-                    cursor.style.top = e.clientY + 'px';
-                });
-
-                document.querySelectorAll('a, .menu-item').forEach(el => {
-                    el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
-                    el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
-                });
+            if (mediaElement.tagName === 'VIDEO') {
+                mediaElement.load();
             }
         }
 
-        function initGhostMenu() {
-            document.addEventListener('mousemove', (e) => {
-                if (e.clientY < 80) {
-                    ghostMenu.classList.add('visible');
-                } else {
-                    ghostMenu.classList.remove('visible');
-                }
-            });
+        function activateCurrentItem() {
+            const activeItemContainer = sections[currentSection].querySelector(`.item[data-item="${currentItems[currentSection]}"]`);
+            if (!activeItemContainer) return;
 
-            menuItems.forEach((item, index) => {
-                item.addEventListener('click', () => changeSection(index));
-            });
+            const mediaElement = activeItemContainer.querySelector('.media[data-src]');
+            if (!mediaElement) return;
+
+            loadMediaOnDemand(mediaElement);
+
+            if (mediaElement.tagName === 'VIDEO') {
+                const playButton = activeItemContainer.querySelector('.play-button-overlay');
+                if (playButton) playButton.style.display = 'flex';
+            }
         }
 
         function changeSection(newSection) {
@@ -752,8 +725,8 @@
             const totalItems = itemsPerSection[currentSection];
             if (totalItems <= 1) return;
 
+            const currentItemEl = sections[currentSection].querySelector(`.item.active`);
             const currentItemIndex = currentItems[currentSection];
-            const currentItemEl = sections[currentSection].querySelector(`.item[data-item="${currentItemIndex}"]`);
             
             let newItemIndex = (direction === 'next')
                 ? (currentItemIndex + 1) % totalItems
@@ -773,17 +746,7 @@
             }
             
             updateCounters();
-        }
-
-        function activateCurrentItem() {
-            const items = sections[currentSection].querySelectorAll('.item');
-            items.forEach((item, index) => {
-                item.classList.toggle('active', index === currentItems[currentSection]);
-                if (index !== currentItems[currentSection]) {
-                    item.classList.remove('prev');
-                }
-            });
-            lazyLoadActiveItem();
+            activateCurrentItem();
         }
 
         function updateCounters() {
@@ -796,67 +759,50 @@
             document.addEventListener('keydown', (e) => {
                 if (!isInitialized) return;
                 switch(e.key) {
-                    case 'ArrowUp': changeSection(currentSection - 1); break;
-                    case 'ArrowDown': changeSection(currentSection + 1); break;
+                    case 'ArrowUp': changeSection(currentSection > 0 ? currentSection - 1 : totalSections - 1); break;
+                    case 'ArrowDown': changeSection((currentSection + 1) % totalSections); break;
                     case 'ArrowLeft': changeItem('prev'); break;
                     case 'ArrowRight': changeItem('next'); break;
                 }
             });
         }
 
-        function lazyLoadActiveItem() {
-            const activeItem = sections[currentSection].querySelector('.item.active .lazy');
-            if (activeItem && activeItem.dataset.src) {
-                const mediaWrapper = activeItem.closest('.media-wrapper');
-                const loadingIndicator = mediaWrapper.querySelector('.media-loading');
-                loadingIndicator.style.display = 'flex';
+        function initCursor() {
+            if (window.innerWidth <= 768) return;
+            document.addEventListener('mousemove', (e) => {
+                cursor.style.left = e.clientX + 'px';
+                cursor.style.top = e.clientY + 'px';
+            });
+            document.querySelectorAll('a, .menu-item, .play-button-overlay').forEach(el => {
+                el.addEventListener('mouseenter', () => cursor.classList.add('hover'));
+                el.addEventListener('mouseleave', () => cursor.classList.remove('hover'));
+            });
+        }
 
-                activeItem.src = activeItem.dataset.src;
-                
-                activeItem.onload = () => {
-                    loadingIndicator.style.display = 'none';
-                    activeItem.classList.add('loaded');
-                };
-                activeItem.onerror = () => {
-                    loadingIndicator.style.display = 'none';
-                    console.error(`Failed to load media: ${activeItem.dataset.src}`);
-                };
+        function initGhostMenu() {
+            document.addEventListener('mousemove', (e) => {
+                ghostMenu.classList.toggle('visible', e.clientY < 80);
+            });
+            menuItems.forEach((item, index) => {
+                item.addEventListener('click', () => changeSection(index));
+            });
+        }
 
-                if (activeItem.tagName === 'VIDEO') {
-                    activeItem.onloadeddata = () => {
-                        loadingIndicator.style.display = 'none';
-                        activeItem.classList.add('loaded');
-                        activeItem.muted = true;
-                        const playPromise = activeItem.play();
-                        if (playPromise !== undefined) {
-                            playPromise.catch(error => {
-                                console.log('Autoplay was prevented. Showing play button.');
-                                const playButton = mediaWrapper.querySelector('.play-button-overlay');
-                                if (playButton) {
-                                    playButton.style.display = 'flex';
-                                    playButton.addEventListener('click', () => {
-                                        activeItem.play();
-                                        playButton.style.display = 'none';
-                                    }, { once: true });
-                                }
-                            });
-                        }
-                    };
-                    activeItem.load();
-                } else {
-                     activeItem.onload = () => {
-                        loadingIndicator.style.display = 'none';
-                        activeItem.classList.add('loaded');
-                    };
+        // Event listener for play buttons
+        document.addEventListener('click', (event) => {
+            const playButton = event.target.closest('.play-button-overlay');
+            if (playButton) {
+                const video = playButton.closest('.media-wrapper').querySelector('video');
+                if (video) {
+                    logger.info('Play button clicked. Attempting to play video...');
+                    playButton.style.display = 'none';
+                    video.play().catch(error => {
+                        logger.error('Video playback failed.', error);
+                        playButton.style.display = 'flex'; // Show button again on failure
+                    });
                 }
-                delete activeItem.dataset.src;
             }
-        }
-
-        function initializeLazyLoading() {
-            // The new logic loads content on-demand via activateCurrentItem
-            // so this IntersectionObserver is no longer the primary method.
-        }
+        });
 
         function init() {
             const preloader = document.querySelector('.preloader');
@@ -865,12 +811,16 @@
             setupKeyboardNavigation();
             
             loadPortfolioData().then(() => {
+                // Set initial active item
+                const initialItem = document.querySelector(`.section.active .item[data-item="0"]`);
+                if(initialItem) initialItem.classList.add('active');
+                
                 activateCurrentItem();
                 isInitialized = true;
                 preloader.classList.add('hidden');
-                console.log('Application initialized.');
+                logger.info('Application initialized.');
             }).catch(error => {
-                console.error('Initialization failed:', error);
+                logger.error('Initialization failed:', error);
                 preloader.classList.add('hidden');
             });
         }
