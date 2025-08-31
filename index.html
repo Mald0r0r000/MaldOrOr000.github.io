@@ -107,7 +107,7 @@
         .nav-indicators {
             position: fixed;
             bottom: 30px;
-            right: 30px;
+            right: 4vw; /* 4% de la largeur du viewport pour la symétrie */
             z-index: 1000;
             font-size: 11px;
             opacity: 0.5;
@@ -127,7 +127,7 @@
         .nav-instructions {
             position: fixed;
             bottom: 30px;
-            left: 30px;
+            left: 4vw; /* 4% de la largeur du viewport, aligné avec .item-info */
             z-index: 1000;
             font-size: 11px;
             opacity: 0.4;
@@ -369,8 +369,8 @@
         /* Overlay d'informations minimal */
         .item-info {
             position: absolute;
-            bottom: 40px;
-            left: 40px;
+            bottom: 40px; /* Conserver la position verticale */
+            left: 4vw; /* 4% de la largeur du viewport */
             z-index: 10;
             background: rgba(0, 0, 0, 0.4);
             backdrop-filter: blur(15px);
@@ -443,25 +443,25 @@
                 font-size: 12px;
             }
 
-            .nav-indicators {
-                bottom: 20px;
-                right: 20px;
-            }
-
-            .nav-instructions {
-                bottom: 20px;
-                left: 20px;
-                font-size: 10px;
-            }
-
             .item-info {
                 bottom: 25px;
-                left: 25px;
+                left: 5vw; /* On augmente légèrement le pourcentage pour les petites tablettes */
                 padding: 10px 16px;
             }
 
             .showreel-section .item-info {
                 bottom: 40px;
+            }
+
+            .nav-indicators {
+                bottom: 20px;
+                right: 5vw;
+            }
+
+            .nav-instructions {
+                bottom: 20px;
+                left: 5vw;
+                font-size: 10px;
             }
 
             body {
@@ -482,22 +482,22 @@
                 font-size: 11px;
             }
 
+            .item-info {
+                bottom: 20px;
+                left: 6vw; /* On augmente encore pour les petits mobiles */
+                padding: 8px 14px;
+            }
+
             .nav-indicators {
                 bottom: 15px;
-                right: 15px;
+                right: 6vw;
                 font-size: 10px;
             }
 
             .nav-instructions {
                 bottom: 15px;
-                left: 15px;
+                left: 6vw;
                 font-size: 9px;
-            }
-
-            .item-info {
-                bottom: 20px;
-                left: 20px;
-                padding: 8px 14px;
             }
 
             .item-title {
