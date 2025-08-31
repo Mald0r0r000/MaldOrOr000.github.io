@@ -333,6 +333,45 @@
             transform: scale(1.02);
         }
 
+        /* Nouveau code pour la gestion du ratio d'aspect */
+        .media-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .media-wrapper {
+            position: relative;
+            background-color: #000;
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+        }
+
+        .media-wrapper.aspect-16-9 {
+            aspect-ratio: 16 / 9;
+            height: auto; /* L'aspect-ratio gère la hauteur */
+        }
+
+        .media-wrapper.aspect-9-16 {
+            aspect-ratio: 9 / 16;
+            width: auto; /* L'aspect-ratio gère la largeur */
+            height: 95%; /* Limite la hauteur sur les écrans larges */
+        }
+
+        .media-wrapper .media {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
         /* Overlay d'informations minimal */
         .item-info {
             position: absolute;
@@ -644,21 +683,51 @@
                 item.className = 'item';
                 item.dataset.item = index;
 
-                const mediaElement = type === 'video'
-                    ? `<video class="media" data-src="${itemData.media}" loop muted playsinline></video>`
-                    : `<img class="media" data-src="${itemData.media}" alt="${itemData.title}">`;
+                const mediaElement = document.createElement(type === 'video' ? 'video' : 'img');
+                mediaElement.className = 'media';
+                mediaElement.dataset.src = itemData.media;
+                if (type === 'video') {
+                    mediaElement.loop = true;
+                    mediaElement.muted = true;
+                    mediaElement.playsInline = true;
+                } else {
+                    mediaElement.alt = itemData.title;
+                }
 
-                item.innerHTML = `
-                    <div class="media-wrapper">
-                        ${mediaElement}
-                        <div class="media-loading"><div class="spinner"></div></div>
-                        ${type === 'video' ? '<div class="play-button-overlay"></div>' : ''}
-                    </div>
-                    <div class="item-info">
-                        <h2 class="item-title">${itemData.title}</h2>
-                        <p class="item-desc">${itemData.description}</p>
-                    </div>
+                const mediaWrapper = document.createElement('div');
+                mediaWrapper.className = 'media-wrapper';
+                if (itemData.ratio === '16:9') {
+                    mediaWrapper.classList.add('aspect-16-9');
+                } else if (itemData.ratio === '9:16') {
+                    mediaWrapper.classList.add('aspect-9-16');
+                }
+
+                mediaWrapper.appendChild(mediaElement);
+                
+                const loadingIndicator = document.createElement('div');
+                loadingIndicator.className = 'media-loading';
+                loadingIndicator.innerHTML = '<div class="spinner"></div>';
+                mediaWrapper.appendChild(loadingIndicator);
+
+                if (type === 'video') {
+                    const playButton = document.createElement('div');
+                    playButton.className = 'play-button-overlay';
+                    mediaWrapper.appendChild(playButton);
+                }
+
+                const mediaContainer = document.createElement('div');
+                mediaContainer.className = 'media-container';
+                mediaContainer.appendChild(mediaWrapper);
+
+                const itemInfo = document.createElement('div');
+                itemInfo.className = 'item-info';
+                itemInfo.innerHTML = `
+                    <h2 class="item-title">${itemData.title}</h2>
+                    <p class="item-desc">${itemData.description}</p>
                 `;
+
+                item.appendChild(mediaContainer);
+                item.appendChild(itemInfo);
                 container.appendChild(item);
             });
         }
@@ -793,6 +862,49 @@
             });
         }
 
+        function setupSwipeNavigation() {
+            let touchstartX = 0;
+            let touchendX = 0;
+            let touchstartY = 0;
+            let touchendY = 0;
+            const gestureZone = document.querySelector('.main-container');
+
+            gestureZone.addEventListener('touchstart', function(event) {
+                touchstartX = event.changedTouches[0].screenX;
+                touchstartY = event.changedTouches[0].screenY;
+            }, false);
+
+            gestureZone.addEventListener('touchend', function(event) {
+                touchendX = event.changedTouches[0].screenX;
+                touchendY = event.changedTouches[0].screenY;
+                handleGesture();
+            }, false); 
+
+            function handleGesture() {
+                const deltaX = touchendX - touchstartX;
+                const deltaY = touchendY - touchstartY;
+                const threshold = 50; // Déplacement minimum pour déclencher une action
+
+                if (Math.abs(deltaX) > Math.abs(deltaY)) { // Geste horizontal
+                    if (Math.abs(deltaX) > threshold) {
+                        if (deltaX > 0) {
+                            changeItem('prev');
+                        } else {
+                            changeItem('next');
+                        }
+                    }
+                } else { // Geste vertical
+                    if (Math.abs(deltaY) > threshold) {
+                        if (deltaY > 0) {
+                            changeSection(currentSection > 0 ? currentSection - 1 : totalSections - 1);
+                        } else {
+                            changeSection((currentSection + 1) % totalSections);
+                        }
+                    }
+                }
+            }
+        }
+
         function initCursor() {
             if (window.innerWidth <= 768) return;
             document.addEventListener('mousemove', (e) => {
@@ -835,6 +947,7 @@
             initCursor();
             initGhostMenu();
             setupKeyboardNavigation();
+            setupSwipeNavigation();
             
             loadPortfolioData().then(() => {
                 activateCurrentItem();
