@@ -5,7 +5,6 @@
         "order": 1,
         "media": "https://media.antoine-bedos.com/VIDEOS/SHOWREEL/SHOWREEL_2025.mp4",
         "type": "video",
-        "ratio": "16:9",
         "title": "Showreel 2025",
         "description": "DIRECTION, DOP, EDITING"
       },
@@ -14,7 +13,6 @@
         "order": 2,
         "media": "https://media.antoine-bedos.com/VIDEOS/INSTA/CAPSULE_01_FINALE_ADDITIONAL-SHOTS(1).mp4",
         "type": "video",
-        "ratio": "9:16",
         "title": "Juun J",
         "description": "DIRECTION, DOP, EDITING — 2025"
       },
@@ -23,7 +21,6 @@
         "order": 3,
         "media": "https://media.antoine-bedos.com/VIDEOS/INSTA/CAPSULE_02_FINALE(1).mp4",
         "type": "video",
-        "ratio": "9:16",
         "title": "Juun J",
         "description": "DIRECTION, DOP, EDITING — 2025"
       }
@@ -33,7 +30,6 @@
         "active": true,
         "order": 1,
         "media": "https://picsum.photos/1920/1080?random=1",
-        "ratio": "16:9",
         "title": "Portrait Series",
         "description": "Photographie — 2024"
       },
@@ -41,7 +37,6 @@
         "active": true,
         "order": 2,
         "media": "https://picsum.photos/1920/1080?random=2",
-        "ratio": "16:9",
         "title": "Architecture",
         "description": "Série documentaire — 2024"
       },
@@ -49,7 +44,6 @@
         "active": true,
         "order": 3,
         "media": "https://picsum.photos/1920/1080?random=3",
-        "ratio": "16:9",
         "title": "Street Photography",
         "description": "Projet personnel — 2023"
       },
@@ -57,7 +51,6 @@
         "active": true,
         "order": 4,
         "media": "https://picsum.photos/1920/1080?random=4",
-        "ratio": "16:9",
         "title": "Editorial",
         "description": "Magazine collaboration — 2023"
       }

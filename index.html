@@ -352,15 +352,9 @@
             height: 100%;
         }
 
-        .media-wrapper.aspect-16-9 {
-            aspect-ratio: 16 / 9;
-            height: auto; /* L'aspect-ratio gère la hauteur */
-        }
-
-        .media-wrapper.aspect-9-16 {
-            aspect-ratio: 9 / 16;
-            width: auto; /* L'aspect-ratio gère la largeur */
-            height: 95%; /* Limite la hauteur sur les écrans larges */
+        .media-wrapper {
+            max-width: 100%;
+            max-height: 100%;
         }
 
         .media-wrapper .media {
@@ -686,21 +680,16 @@
                 const mediaElement = document.createElement(type === 'video' ? 'video' : 'img');
                 mediaElement.className = 'media';
                 mediaElement.dataset.src = itemData.media;
+                mediaElement.alt = itemData.title; // Utile pour l'accessibilité
+                
                 if (type === 'video') {
                     mediaElement.loop = true;
                     mediaElement.muted = true;
                     mediaElement.playsInline = true;
-                } else {
-                    mediaElement.alt = itemData.title;
                 }
 
                 const mediaWrapper = document.createElement('div');
                 mediaWrapper.className = 'media-wrapper';
-                if (itemData.ratio === '16:9') {
-                    mediaWrapper.classList.add('aspect-16-9');
-                } else if (itemData.ratio === '9:16') {
-                    mediaWrapper.classList.add('aspect-9-16');
-                }
 
                 mediaWrapper.appendChild(mediaElement);
                 
@@ -736,7 +725,6 @@
         function activateCurrentItem() {
             let activeItemContainer = sections[currentSection].querySelector(`.item.active`);
             if (!activeItemContainer) {
-                // Fallback to find by data-item if .active is not yet set
                 activeItemContainer = sections[currentSection].querySelector(`.item[data-item="${currentItems[currentSection]}"]`);
                 if (!activeItemContainer) {
                     logger.warn('No active item found in current section.');
@@ -746,7 +734,6 @@
 
             const mediaElement = activeItemContainer.querySelector('.media[data-src]');
             
-            // Si l'élément média existe et n'a pas encore de source
             if (mediaElement && mediaElement.dataset.src) {
                 logger.info('Attempting to load media on demand...', mediaElement.dataset.src);
                 const loadingIndicator = activeItemContainer.querySelector('.media-loading');
@@ -755,16 +742,38 @@
                 const src = mediaElement.dataset.src;
                 delete mediaElement.dataset.src;
 
-                // Gestionnaires d'événements pour toutes les erreurs et succès de chargement
                 const onLoaded = () => {
                     logger.info('Media loaded successfully.', src);
                     loadingIndicator.style.display = 'none';
                     mediaElement.classList.add('loaded');
+                    
+                    // LOGIQUE CLÉ : CALCULER ET APPLIQUER LE RATIO DYNAMIQUE
+                    const width = mediaElement.videoWidth || mediaElement.naturalWidth;
+                    const height = mediaElement.videoHeight || mediaElement.naturalHeight;
+                    if (width && height) {
+                        const ratio = width / height;
+                        const mediaWrapper = activeItemContainer.querySelector('.media-wrapper');
+                        
+                        // On applique le style directement pour le ratio
+                        mediaWrapper.style.aspectRatio = `${width} / ${height}`;
+
+                        // Ajustement pour le layout
+                        if (ratio > 1) { // Paysage
+                            mediaWrapper.style.width = 'auto';
+                            mediaWrapper.style.height = '95%'; // Occupe la hauteur max
+                        } else { // Portrait ou carré
+                            mediaWrapper.style.height = '95%';
+                            mediaWrapper.style.width = 'auto'; // La largeur s'ajuste via l'aspect-ratio
+                        }
+                        logger.info(`Calculated ratio for ${src}: ${width}:${height}`);
+                    }
+
                     // Nettoyage des événements
                     mediaElement.removeEventListener('load', onLoaded);
                     mediaElement.removeEventListener('loadeddata', onLoaded);
                     mediaElement.removeEventListener('error', onError);
                 };
+
                 const onError = () => {
                     logger.error('Error loading media.', src);
                     loadingIndicator.style.display = 'none';
@@ -772,23 +781,17 @@
 
                 mediaElement.addEventListener('error', onError, { once: true });
 
-                // Logique spécifique aux types de médias
                 if (mediaElement.tagName === 'VIDEO') {
                     const playButton = activeItemContainer.querySelector('.play-button-overlay');
                     if (playButton) playButton.style.display = 'flex';
-                    
                     mediaElement.addEventListener('loadeddata', onLoaded, { once: true });
-                    
-                    mediaElement.src = src; // Démarre le chargement
+                    mediaElement.src = src;
                     mediaElement.load();
-                    
-                } else { // C'est une image
+                } else { // Image
                     mediaElement.addEventListener('load', onLoaded, { once: true });
-                    mediaElement.src = src; // Démarre le chargement
+                    mediaElement.src = src;
                 }
-
             } else {
-                // Si l'élément média n'a pas de data-src (déjà chargé) ou s'il n'existe pas
                 const mediaElementExisting = activeItemContainer.querySelector('.media');
                 if (mediaElementExisting) {
                     mediaElementExisting.classList.add('loaded');
