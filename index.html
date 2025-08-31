@@ -55,8 +55,8 @@
             opacity: 0;
             transform: translateY(-100%);
             transition: all 0.6s cubic-bezier(0.23, 1, 0.32, 1);
-            background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
-            backdrop-filter: blur(20px);
+            background: linear-gradient(180deg, rgba(0,0,0,0.4) 0%, rgba(0,0,0,0) 100%);
+            backdrop-filter: blur(10px);
         }
 
         .ghost-menu.visible {
@@ -138,8 +138,8 @@
         /* Conteneur principal fullscreen */
         .main-container {
             position: relative;
-            width: 100vw; /* Utiliser la largeur de la fenêtre */
-            height: 100vh; /* Utiliser la hauteur de la fenêtre */
+            width: 95vw; /* Utiliser la largeur de la fenêtre */
+            height: 95vh; /* Utiliser la hauteur de la fenêtre */
             overflow: hidden;
         }
 
@@ -395,8 +395,8 @@
             bottom: 40px; /* Conserver la position verticale */
             left: 4vw; /* 4% de la largeur du viewport */
             z-index: 10;
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(15px);
+            background: rgba(0, 0, 0, 0.08);
+            backdrop-filter: blur(5px);
             padding: 12px 20px;
             border-radius: 25px;
             border: 1px solid rgba(255, 255, 255, 0.1);
@@ -412,6 +412,7 @@
 
         .item-title {
             font-size: 13px;
+            opacity: 0.6;
             font-weight: 300;
             margin-bottom: 2px;
             letter-spacing: 0.5px;
@@ -419,7 +420,7 @@
 
         .item-desc {
             font-size: 11px;
-            opacity: 0.8;
+            opacity: 0.4;
             font-weight: 300;
             letter-spacing: 0.3px;
         }
@@ -568,7 +569,7 @@
         
         /* Styles pour les éléments 'fantômes' */
         .ghost-fade {
-            opacity: 0.15 !important;
+            opacity: 0.02 !important;
             transition: opacity 0.5s ease-in-out;
             pointer-events: auto; /* Permet les interactions même quand l'opacité est basse */
         }
