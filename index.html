@@ -565,6 +565,37 @@
             0%, 100% { opacity: 0.3; transform: scale(0.8); }
             50% { opacity: 1; transform: scale(1); }
         }
+        
+        /* Styles pour les éléments 'fantômes' */
+        .ghost-fade {
+            opacity: 0.15 !important;
+            transition: opacity 0.5s ease-in-out;
+            pointer-events: auto; /* Permet les interactions même quand l'opacité est basse */
+        }
+
+        .ghost-fade:hover,
+        .ghost-fade:focus-within,
+        .section.active .ghost-fade,
+        .ghost-fade.active {
+            opacity: 1 !important;
+        }
+        
+        /* Assurez-vous que les éléments avec la classe ghost-fade soient cliquables même quand ils sont transparents */
+        .ghost-fade * {
+            pointer-events: auto;
+        }
+        
+        /* Éléments qui doivent être affectés par le mode fantôme */
+        .ghost-menu,
+        .ui-info,
+        .controls,
+        .counter,
+        .nav-indicators,
+        .nav-instructions,
+        .sound-button-overlay,
+        .play-button-overlay {
+            transition: opacity 0.5s ease-in-out, transform 0.3s ease;
+        }
     </style>
 </head>
 <body>
@@ -642,6 +673,10 @@
         let currentItems = [0, 0];
         const totalSections = 2;
         let itemsPerSection = [0, 0];
+        
+        // Variables pour la gestion du mode fantôme
+        let ghostTimer;
+        const GHOST_MODE_DELAY = 3000; // 3 secondes d'inactivité avant activation du mode fantôme
         let isInitialized = false;
 
         const sections = document.querySelectorAll('.section');
@@ -968,6 +1003,51 @@
             });
         }
 
+        // Fonctions pour gérer le mode fantôme
+        function toggleGhostMode(enable) {
+            const ghostElements = document.querySelectorAll('.ghost-menu, .ui-info, .controls, .counter, .nav-indicators, .nav-instructions, .sound-button-overlay, .play-button-overlay');
+            ghostElements.forEach(el => {
+                if (enable) {
+                    el.classList.add('ghost-fade');
+                } else {
+                    el.classList.remove('ghost-fade');
+                }
+            });
+            logger.debug(`Ghost mode ${enable ? 'enabled' : 'disabled'}`);
+        }
+
+        function resetGhostTimer() {
+            // Réinitialiser le timer à chaque interaction
+            clearTimeout(ghostTimer);
+            
+            // Afficher les éléments
+            toggleGhostMode(false);
+            
+            // Démarrer un nouveau timer pour les cacher à nouveau
+            ghostTimer = setTimeout(() => {
+                if (isInitialized) {
+                    toggleGhostMode(true);
+                }
+            }, GHOST_MODE_DELAY);
+        }
+
+        // Fonction pour gérer les événements de souris et de clavier
+        function setupGhostModeListeners() {
+            // Événements de souris
+            document.addEventListener('mousemove', resetGhostTimer);
+            document.addEventListener('mousedown', resetGhostTimer);
+            
+            // Événements de clavier
+            document.addEventListener('keydown', resetGhostTimer);
+            
+            // Toujours afficher les éléments lors du survol des contrôles
+            document.querySelectorAll('.ghost-menu, .controls, .counter, .nav-indicators, .nav-instructions')
+                .forEach(el => {
+                    el.addEventListener('mouseenter', () => toggleGhostMode(false));
+                    el.addEventListener('focus', () => toggleGhostMode(false));
+                });
+        }
+
         // Event listener for play buttons
         document.addEventListener('click', (event) => {
             const playButton = event.target.closest('.play-button-overlay');
@@ -1018,6 +1098,11 @@
                 isInitialized = true;
                 preloader.classList.add('hidden');
                 logger.info('Application initialized.');
+                
+                // Initialiser le mode fantôme après le chargement complet
+                setupGhostModeListeners();
+                resetGhostTimer(); // Démarrer le timer pour le mode fantôme
+                
             }).catch(error => {
                 logger.error('Initialization failed:', error);
                 preloader.classList.add('hidden');
