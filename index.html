@@ -292,16 +292,16 @@
             height: 100%;
             overflow: hidden;
         }
-
-        .media {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+        
+        .video-container .media {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
             transition: opacity 0.3s ease-in-out;
             opacity: 0;
         }
-
-        .media.loaded {
+        
+        .video-container .media.loaded {
             opacity: 1;
         }
 
@@ -337,28 +337,21 @@
         }
 
         /* Nouveau code pour la gestion du ratio d'aspect */
-        .media-container {
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
-
+        /* Suppression de .media-container car il n'est plus utilisé */
+        
         .media-wrapper {
             position: relative;
             background-color: #000;
-            overflow: hidden;
-            width: 100%;
-            height: 100%;
-        }
-
-        .media-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
             max-width: 100%;
             max-height: 100%;
+            margin: 0 auto;
         }
 
         .media-wrapper .media {
-            position: absolute;
-            top: 0;
+            position: relative;
             left: 0;
             width: 100%;
             height: 100%;
@@ -679,7 +672,7 @@
                 const mediaElement = document.createElement(type === 'video' ? 'video' : 'img');
                 mediaElement.className = 'media';
                 mediaElement.dataset.src = itemData.media;
-                mediaElement.alt = itemData.title; // Utile pour l'accessibilité
+                mediaElement.alt = itemData.title;
                 
                 if (type === 'video') {
                     mediaElement.loop = true;
@@ -689,7 +682,6 @@
 
                 const mediaWrapper = document.createElement('div');
                 mediaWrapper.className = 'media-wrapper';
-
                 mediaWrapper.appendChild(mediaElement);
                 
                 const loadingIndicator = document.createElement('div');
@@ -703,10 +695,6 @@
                     mediaWrapper.appendChild(playButton);
                 }
 
-                const mediaContainer = document.createElement('div');
-                mediaContainer.className = 'media-container';
-                mediaContainer.appendChild(mediaWrapper);
-
                 const itemInfo = document.createElement('div');
                 itemInfo.className = 'item-info';
                 itemInfo.innerHTML = `
@@ -714,7 +702,7 @@
                     <p class="item-desc">${itemData.description}</p>
                 `;
 
-                item.appendChild(mediaContainer);
+                item.appendChild(mediaWrapper);
                 item.appendChild(itemInfo);
                 container.appendChild(item);
             });
@@ -749,28 +737,24 @@
                     // LOGIQUE CLÉ : CALCULER ET APPLIQUER LE RATIO DYNAMIQUE
                     const width = mediaElement.videoWidth || mediaElement.naturalWidth;
                     const height = mediaElement.videoHeight || mediaElement.naturalHeight;
+                    
                     if (width && height) {
-                        const ratio = width / height;
                         const mediaWrapper = activeItemContainer.querySelector('.media-wrapper');
                         
-                        // On applique le style directement pour le ratio
+                        // Appliquer le ratio d'aspect sur le wrapper
                         mediaWrapper.style.aspectRatio = `${width} / ${height}`;
 
-                        // Ajustement pour le layout
-                        if (ratio > 1) { // Paysage
+                        // Assurer un ajustement optimal à la fenêtre
+                        if (width > height) { // Paysage
+                            mediaWrapper.style.width = '100%';
+                            mediaWrapper.style.height = 'auto';
+                        } else { // Portrait
+                            mediaWrapper.style.height = '100%';
                             mediaWrapper.style.width = 'auto';
-                            mediaWrapper.style.height = '95%'; // Occupe la hauteur max
-                        } else { // Portrait ou carré
-                            mediaWrapper.style.height = '95%';
-                            mediaWrapper.style.width = 'auto'; // La largeur s'ajuste via l'aspect-ratio
                         }
+
                         logger.info(`Calculated ratio for ${src}: ${width}:${height}`);
                     }
-
-                    // Nettoyage des événements
-                    mediaElement.removeEventListener('load', onLoaded);
-                    mediaElement.removeEventListener('loadeddata', onLoaded);
-                    mediaElement.removeEventListener('error', onError);
                 };
 
                 const onError = () => {
