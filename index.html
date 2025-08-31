@@ -286,6 +286,37 @@
             background: rgba(0, 0, 0, 0.7);
         }
         
+        /* Style pour le bouton de contrôle du son */
+        .sound-button-overlay {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.5);
+            border-radius: 50%;
+            cursor: pointer;
+            z-index: 3;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: opacity 0.3s ease, transform 0.3s ease, background 0.3s ease;
+        }
+        
+        .media-wrapper:hover .sound-button-overlay {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .sound-button-overlay:hover {
+            background: rgba(0, 0, 0, 0.8);
+            transform: scale(1.1) translateY(0);
+        }
+        
         .video-container {
             position: relative;
             width: 100%;
@@ -676,7 +707,7 @@
                 
                 if (type === 'video') {
                     mediaElement.loop = true;
-                    mediaElement.muted = false;
+                    mediaElement.muted = true; // Rendre muet par défaut
                     mediaElement.playsInline = true;
                 }
 
@@ -690,9 +721,17 @@
                 mediaWrapper.appendChild(loadingIndicator);
 
                 if (type === 'video') {
+                    // Bouton de lecture
                     const playButton = document.createElement('div');
                     playButton.className = 'play-button-overlay';
                     mediaWrapper.appendChild(playButton);
+                    
+                    // Bouton de contrôle du son
+                    const soundButton = document.createElement('div');
+                    soundButton.className = 'sound-button-overlay';
+                    soundButton.innerHTML = '🔇'; // Icône pour un son coupé par défaut
+                    soundButton.setAttribute('aria-label', 'Activer le son');
+                    mediaWrapper.appendChild(soundButton);
                 }
 
                 const itemInfo = document.createElement('div');
@@ -784,6 +823,13 @@
 
         function changeSection(newSection) {
             if (newSection === currentSection || newSection < 0 || newSection >= totalSections) return;
+            
+            // Mettre en pause la vidéo dans la section qui sort
+            const currentVideoEl = sections[currentSection].querySelector('.item.active video');
+            if (currentVideoEl && !currentVideoEl.paused) {
+                currentVideoEl.pause();
+                logger.info('Video paused during section change');
+            }
 
             sections[currentSection].classList.remove('active');
             sections[currentSection].classList.add('prev');
@@ -796,7 +842,10 @@
             menuItems[currentSection].classList.add('active');
             
             updateCounters();
-            activateCurrentItem();
+            // On s'assure que le DOM est à jour avant d'activer
+            requestAnimationFrame(() => {
+                activateCurrentItem();
+            });
         }
 
         function changeItem(direction) {
@@ -804,6 +853,17 @@
             if (totalItems <= 1) return;
 
             const currentItemEl = sections[currentSection].querySelector(`.item.active`);
+            // Mettre en pause la vidéo précédente si elle existe
+            if (currentItemEl) {
+                const videoEl = currentItemEl.querySelector('video');
+                if (videoEl && !videoEl.paused) {
+                    videoEl.pause();
+                    logger.info('Video paused during item change');
+                }
+                currentItemEl.classList.remove('active');
+                currentItemEl.classList.add('prev');
+            }
+            
             const currentItemIndex = currentItems[currentSection];
             
             let newItemIndex = (direction === 'next')
@@ -814,10 +874,6 @@
 
             const newItemEl = sections[currentSection].querySelector(`.item[data-item="${newItemIndex}"]`);
 
-            if (currentItemEl) {
-                currentItemEl.classList.remove('active');
-                currentItemEl.classList.add('prev');
-            }
             if (newItemEl) {
                 newItemEl.classList.remove('prev');
                 newItemEl.classList.add('active');
@@ -918,12 +974,34 @@
             if (playButton) {
                 const video = playButton.closest('.media-wrapper').querySelector('video');
                 if (video) {
-                    logger.info('Play button clicked. Attempting to play video...');
-                    playButton.style.display = 'none';
-                    video.play().catch(error => {
-                        logger.error('Video playback failed.', error);
-                        playButton.style.display = 'flex'; // Show button again on failure
-                    });
+                    if (video.paused) {
+                        video.play().catch(e => logger.error('Error playing video:', e));
+                        playButton.style.display = 'none';
+                    } else {
+                        video.pause();
+                        playButton.style.display = 'flex';
+                    }
+                }
+            }
+            
+            // Gestion du bouton de contrôle du son
+            const soundButton = event.target.closest('.sound-button-overlay');
+            if (soundButton) {
+                const video = soundButton.closest('.media-wrapper').querySelector('video');
+                if (video) {
+                    // Basculer l'état du son (muet/non muet)
+                    video.muted = !video.muted;
+                    
+                    // Mettre à jour l'icône en fonction de l'état du son
+                    soundButton.innerHTML = video.muted ? '🔇' : '🔊';
+                    soundButton.setAttribute('aria-label', video.muted ? 'Activer le son' : 'Désactiver le son');
+                    
+                    logger.info(`Sound ${video.muted ? 'muted' : 'unmuted'}`);
+                    
+                    // Si le son est activé et que la vidéo est en pause, la lire
+                    if (!video.muted && video.paused) {
+                        video.play().catch(e => logger.error('Error playing video:', e));
+                    }
                 }
             }
         });
