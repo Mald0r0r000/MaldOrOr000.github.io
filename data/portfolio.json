@@ -53,6 +53,76 @@
         "media": "https://media.antoine-bedos.com/PHOTOS/230104000006890003.jpg",
         "title": "INES",
         "description": "2024"
+      },
+      {
+        "active": true,
+        "order": 5,
+        "media": "https://media.antoine-bedos.com/PHOTOS/20200205_TESTS_THECLAW_035.jpg",
+        "title": "AKUOL",
+        "description": "2020"
+      },
+      {
+        "active": true,
+        "order": 6,
+        "media": "https://media.antoine-bedos.com/PHOTOS/20200205_TESTS_THECLAW_043.jpg",
+        "title": "AKUOL",
+        "description": "2020"
+      },
+      {
+        "active": true,
+        "order": 7,
+        "media": "https://media.antoine-bedos.com/PHOTOS/20200109_KITS-LOOKBOOK_04_0288_OWN_CMJN_348.jpg",
+        "title": "KITS",
+        "description": "2020"
+      },
+      {
+        "active": true,
+        "order": 8,
+        "media": "https://media.antoine-bedos.com/PHOTOS/AB_LOOK_008_1925_554.jpg",
+        "title": "TFR",
+        "description": "2021"
+      },
+      {
+        "active": true,
+        "order": 9,
+        "media": "https://media.antoine-bedos.com/TFR_AB_VD_FINALS_00013.jpg",
+        "title": "TFR",
+        "description": "2021"
+      },
+      {
+        "active": true,
+        "order": 10,
+        "media": "https://media.antoine-bedos.com/TFR_AB_VD_FINALS_00012.jpg",
+        "title": "TFR",
+        "description": "2021"
+      },
+      {
+        "active": true,
+        "order": 11,
+        "media": "https://media.antoine-bedos.com/AB_LOOK_004_1292_476.jpg",
+        "title": "TFR",
+        "description": "2021"
+      },
+      {
+        "active": true,
+        "order": 12,
+        "media": "https://media.antoine-bedos.com/20191211_PULLLETTER35997_PSD_CHROMIE_TEST_35.jpg",
+        "title": "PULL LETTER",
+        "description": "2019"
+      },
+      {
+        "active": true,
+        "order": 13,
+        "media": "https://media.antoine-bedos.com/20191106_ALLABOUT33980_06_52.jpg",
+        "title": "ALL ABOUT",
+        "description": "2019"
+      },
+      {
+        "active": true,
+        "order": 14,
+        "media": "https://media.antoine-bedos.com/20191025_THECLAW33965_01_10.jpg",
+        "title": "THE CLAW",
+        "description": "2019"
       }
     ]
   }
