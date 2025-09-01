@@ -351,6 +351,7 @@
             position: absolute;
             top: 50%;
             right: 20px;
+            opacity: 0.15;
             transform: translateY(-50%) translateY(-10px);
             width: 36px;
             height: 36px;
@@ -369,12 +370,13 @@
 
         .media-wrapper:hover .sound-button-overlay,
         .ghost-mode-active .sound-button-overlay {
-            opacity: 0.08;
+            opacity: 0.3;
             transform: translateY(-50%);
         }
 
         .sound-button-overlay:hover {
-            background: rgba(0, 0, 0, 0.2);
+            background: rgba(0, 0, 0, 0.1);
+            opacity: 0.2;
             transform: scale(1.1) translateY(-50%);
         }
 
