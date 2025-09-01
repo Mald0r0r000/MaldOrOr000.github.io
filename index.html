@@ -286,35 +286,127 @@
             background: rgba(0, 0, 0, 0.7);
         }
         
+        /* Styles pour les icônes de son */
+        .sound-icon {
+            position: relative;
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .sound-icon::before,
+        .sound-icon::after {
+            content: '';
+            position: absolute;
+            transition: all 0.3s ease;
+        }
+
+        /* Icône de son muet */
+        .sound-icon-muted::before {
+            width: 4px;
+            height: 20px;
+            background: white;
+            left: 8px;
+            top: 0;
+            transform: rotate(45deg);
+        }
+
+        .sound-icon-muted::after {
+            content: '×';
+            color: white;
+            font-size: 16px;
+            left: 0;
+            top: 0;
+            width: 20px;
+            height: 20px;
+            text-align: center;
+            line-height: 20px;
+        }
+
+        /* Icône de son actif */
+        .sound-icon-unmuted::before {
+            content: '';
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 6px 0 6px 10px;
+            border-color: transparent transparent transparent white;
+            top: 4px;
+            left: 2px;
+        }
+
+        .sound-icon-unmuted::after {
+            content: '';
+            width: 6px;
+            height: 10px;
+            background: white;
+            top: 5px;
+            left: 12px;
+            border-radius: 2px;
+        }
+
         /* Style pour le bouton de contrôle du son */
         .sound-button-overlay {
             position: absolute;
-            bottom: 20px;
+            top: 20px;
             right: 20px;
-            width: 40px;
-            height: 40px;
-            background: rgba(0, 0, 0, 0.5);
+            width: 36px;
+            height: 36px;
+            background: rgba(0, 0, 0, 0.4);
             border-radius: 50%;
-            cursor: pointer;
             z-index: 3;
             display: flex;
-            justify-content: center;
             align-items: center;
-            font-size: 18px;
+            justify-content: center;
+            cursor: pointer;
             transition: all 0.3s ease;
             opacity: 0;
-            transform: translateY(10px);
-            transition: opacity 0.3s ease, transform 0.3s ease, background 0.3s ease;
+            transform: translateY(-10px);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
         }
-        
-        .media-wrapper:hover .sound-button-overlay {
+
+        .media-wrapper:hover .sound-button-overlay,
+        .ghost-mode-active .sound-button-overlay {
             opacity: 1;
             transform: translateY(0);
         }
-        
+
         .sound-button-overlay:hover {
-            background: rgba(0, 0, 0, 0.8);
+            background: rgba(0, 0, 0, 0.7);
             transform: scale(1.1) translateY(0);
+        }
+
+        @media (max-width: 768px) {
+            .sound-button-overlay {
+                top: 15px;
+                right: 15px;
+                width: 32px;
+                height: 32px;
+            }
+            
+            .sound-icon {
+                width: 16px;
+                height: 16px;
+            }
+            
+            .sound-icon-muted::before {
+                height: 16px;
+                left: 6px;
+            }
+            
+            .sound-icon-unmuted::before {
+                border-width: 4px 0 4px 8px;
+                top: 4px;
+            }
+            
+            .sound-icon-unmuted::after {
+                width: 4px;
+                height: 8px;
+                top: 4px;
+                left: 10px;
+            }
         }
         
         .video-container {
@@ -765,7 +857,7 @@
                     // Bouton de contrôle du son
                     const soundButton = document.createElement('div');
                     soundButton.className = 'sound-button-overlay';
-                    soundButton.innerHTML = '🔇'; // Icône pour un son coupé par défaut
+                    soundButton.innerHTML = '<span class="sound-icon sound-icon-muted"></span>';
                     soundButton.setAttribute('aria-label', 'Activer le son');
                     mediaWrapper.appendChild(soundButton);
                 }
@@ -1073,8 +1165,15 @@
                     // Basculer l'état du son (muet/non muet)
                     video.muted = !video.muted;
                     
-                    // Mettre à jour l'icône en fonction de l'état du son
-                    soundButton.innerHTML = video.muted ? '🔇' : '🔊';
+                    // Mettre à jour l'icône et les classes en fonction de l'état du son
+                    const icon = soundButton.querySelector('.sound-icon');
+                    if (video.muted) {
+                        icon.classList.remove('sound-icon-unmuted');
+                        icon.classList.add('sound-icon-muted');
+                    } else {
+                        icon.classList.remove('sound-icon-muted');
+                        icon.classList.add('sound-icon-unmuted');
+                    }
                     soundButton.setAttribute('aria-label', video.muted ? 'Activer le son' : 'Désactiver le son');
                     
                     logger.info(`Sound ${video.muted ? 'muted' : 'unmuted'}`);
