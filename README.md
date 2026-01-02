@@ -1,4 +1,4 @@
-# Portfolio Antoine Bedos
+# Portfolio 
 
 This is a modern, performant portfolio website that showcases video and photo work. The site features a custom cursor, smooth animations, and lazy loading of media content.
 
