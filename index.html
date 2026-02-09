@@ -1144,8 +1144,9 @@
                 });
         }
 
-        // Event listener for play buttons
+        // Event listener for play buttons and video clicks
         document.addEventListener('click', (event) => {
+            // Handle play button overlay clicks
             const playButton = event.target.closest('.play-button-overlay');
             if (playButton) {
                 const video = playButton.closest('.media-wrapper').querySelector('video');
@@ -1158,6 +1159,23 @@
                         playButton.style.display = 'flex';
                     }
                 }
+                return; // Prevent further processing
+            }
+            
+            // Handle direct video clicks (pause/resume)
+            const videoElement = event.target.closest('video');
+            if (videoElement) {
+                const mediaWrapper = videoElement.closest('.media-wrapper');
+                const videoPlayButton = mediaWrapper?.querySelector('.play-button-overlay');
+                
+                if (videoElement.paused) {
+                    videoElement.play().catch(e => logger.error('Error playing video:', e));
+                    if (videoPlayButton) videoPlayButton.style.display = 'none';
+                } else {
+                    videoElement.pause();
+                    if (videoPlayButton) videoPlayButton.style.display = 'flex';
+                }
+                return; // Prevent further processing
             }
             
             // Gestion du bouton de contrôle du son
