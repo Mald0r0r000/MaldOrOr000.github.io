@@ -985,25 +985,40 @@
                     if (mediaElementExisting) {
                         mediaElementExisting.classList.add('loaded');
 
-                        // For videos: reset to beginning and ensure playable state
+                        // For videos: reload if unloaded or in error state
                         if (mediaElementExisting.tagName === 'VIDEO') {
                             const playButton = activeItemContainer.querySelector('.play-button-overlay');
+                            const loadingIndicator = activeItemContainer.querySelector('.media-loading');
+                            const originalSrc = mediaElementExisting.dataset.originalSrc;
+                            const currentSrc = mediaElementExisting.src;
 
-                            // Check if video needs to be reloaded (decode error recovery)
-                            if (mediaElementExisting.error || mediaElementExisting.readyState === 0) {
-                                logger.info('Video in error state, reloading...', mediaElementExisting.dataset.originalSrc || mediaElementExisting.src);
-                                const originalSrc = mediaElementExisting.dataset.originalSrc || mediaElementExisting.src;
-                                mediaElementExisting.src = '';
-                                mediaElementExisting.load();
+                            // Check if video was unloaded or is in error state
+                            const needsReload = !currentSrc || currentSrc === '' || currentSrc === window.location.href ||
+                                mediaElementExisting.error || mediaElementExisting.readyState === 0;
+
+                            if (needsReload && originalSrc) {
+                                logger.info('Reloading video from originalSrc...', originalSrc);
+                                if (loadingIndicator) loadingIndicator.style.display = 'flex';
+
                                 mediaElementExisting.src = originalSrc;
                                 mediaElementExisting.load();
-                            } else {
-                                // Reset video to beginning for replay
-                                mediaElementExisting.currentTime = 0;
-                            }
 
-                            // Show play button for user to start
-                            if (playButton) playButton.style.display = 'flex';
+                                // Hide loading indicator when video is ready
+                                mediaElementExisting.addEventListener('loadeddata', () => {
+                                    if (loadingIndicator) loadingIndicator.style.display = 'none';
+                                    if (playButton) playButton.style.display = 'flex';
+                                    logger.info('Video reloaded successfully');
+                                }, { once: true });
+
+                                mediaElementExisting.addEventListener('error', () => {
+                                    if (loadingIndicator) loadingIndicator.style.display = 'none';
+                                    logger.error('Error reloading video');
+                                }, { once: true });
+                            } else {
+                                // Video already loaded, just reset to beginning
+                                mediaElementExisting.currentTime = 0;
+                                if (playButton) playButton.style.display = 'flex';
+                            }
                         }
                     }
                 }
@@ -1041,12 +1056,19 @@
                 if (totalItems <= 1) return;
 
                 const currentItemEl = sections[currentSection].querySelector(`.item.active`);
-                // Mettre en pause la vidéo précédente si elle existe
+                // Mettre en pause ET décharger la vidéo précédente pour libérer la mémoire
                 if (currentItemEl) {
                     const videoEl = currentItemEl.querySelector('video');
-                    if (videoEl && !videoEl.paused) {
+                    if (videoEl) {
                         videoEl.pause();
-                        logger.info('Video paused during item change');
+                        // Sauvegarder l'URL originale si pas déjà fait
+                        if (!videoEl.dataset.originalSrc && videoEl.src) {
+                            videoEl.dataset.originalSrc = videoEl.src;
+                        }
+                        // Décharger la vidéo pour libérer la mémoire
+                        videoEl.removeAttribute('src');
+                        videoEl.load();
+                        logger.info('Video unloaded to free memory');
                     }
                     currentItemEl.classList.remove('active');
                     currentItemEl.classList.add('prev');
